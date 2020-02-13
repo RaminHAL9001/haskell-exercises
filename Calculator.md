@@ -432,3 +432,10 @@ every function where the `Prelude.reads` function is used. You may use
 probably easily be re-written without `liftReadS`. You will not be
 able to use `liftReadS` to convert `parseCalc` or `parseChoice`.
 
+## 4.4. Write `parseChar` and `parseSymbol`
+
+## 4.5. Use `fmap` and `parseSymbol` to re-write `parseLabel`
+
+## 4.6. Write the `parseFunc` function for parsing "sin", "cosh", "exp", and "log"
+
+# 5. Turn `Parser` into our own custom monad
