@@ -233,6 +233,18 @@ test it on the following inputs and make sure the outputs are correct:
   because the input string begins with whitespace and neither
   `parseLabel` nor `parseLiteral` should return a successful result.
 
+#### 3.5.1. Rewrite `dropWS` as a `ReadS` type function.
+The new `dropWS` function should never fail (never return an empty
+list), and it should be of type:
+
+``` haskell
+dropWS :: String -> ReadS ()
+```
+
+It may seem unnecessary to wrap the output in a tuple with an empty
+value, but this will make `dropWS` easier to use in higher order
+functions later on.
+
 ### 3.6. Define a function for parsing parenthetical expressions.
 Haskell's Prelude module provides a standard parser for parenthetical
 expressions called `Prelude.readParen`. Be sure to lookupt the
