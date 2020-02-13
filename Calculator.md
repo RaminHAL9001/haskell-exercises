@@ -1,7 +1,7 @@
 ## 1. Define an Abstract Syntax Tree (AST)
 Define a data type that will serve as our AST. Let's call this data
-type `CalcAST`. The `CalcAST` datatype should derive the `Show` and
-`Read` typeclasses.
+type `CalcAST`. The `CalcAST` datatype should derive the `Eq`, `Show`,
+and `Read` typeclasses.
 
 The data type will have 5 different constructors:
 
@@ -59,13 +59,14 @@ testExpressions :: [CalcAST]
 testExpressions =
     [ Literal 1.618
     , Label "pi"
-    , Label "Nami's Astrological Constant"
+    , Label "Nami's Cosmological Constant"
     , ...more tests...
     , ...even more tests...
     ]
 
 main :: IO ()
-main = mapM_ print (fmap (\ test -> (test, calcEval test)) testExpressions)
+main = mapM_ print
+    (fmap (\ test -> (test, calcEval test)) testExpressions)
 ```
 
 ## 3. Define a naive parser
@@ -203,8 +204,8 @@ parse a choice between `ReadS Double` and `ReadS String`, and this is
 why it is necessary to wrap the output of these functions in our
 `CalcAST` data type.
 
-For now, make sure this function type checks, we will test in in the
-upcoming exercises.
+For now, just compile this program and make sure this function type
+checks, we will test in in the upcoming exercises.
 
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
 The `parseLabel` function we wrote in exercise 1.2.2 was of type:
@@ -311,6 +312,79 @@ are correct:
 
 * `parseCalc "((( 123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
+
+### 3.8. Writing a general testing function
+If you followed the recommendation at the start of this section, you
+have been using the REPL to test your functions up until now. Let's
+automate the test process now, and create a general test function for
+testing the parser. Copy and paste this code into `Calculator.hs`,
+replacing the old `main` function.
+
+``` haskell
+data ParseTest a
+    = ParseTest
+      { inputString :: String
+      , expected    :: [(a, String)]
+      , actual      :: [(a, String)]
+      }
+    deriving Show
+
+parseTest :: ReadS a -> [(String, [(a, String)])] -> IO ()
+parseTest parse = mapM_ $ \ (inpStr, exp) ->
+    let result = ParseTest
+            { inputString = inpStr
+            , expected    = exp
+            , actual      = parse inpStr
+            }
+    in if expected result == actual result
+        then return ()          -- Do nothing if the parser is successful,
+        else fail (show result) -- otherwise halt the program with an error.
+
+main :: IO ()
+main = do
+    let ok = return
+    let nope = []
+    parseTest dropWS
+        [ ("    hello", ok ((), "hello"))
+        , ("hello    ", ok ((), "hello    "))
+        ]
+    parseTest parseLabel
+        [ ("pi * 2", ok (Label "pi", " * 2"))
+        , ("2 * pi", nope)
+        , ("  pi", nope)
+        ]
+    parseTest parseLiteral
+        [ ("1618 * 2", ok (Literal 1618.0," * 2"))
+        , ("-1618 * 2", ok (Literal -1618.0," * 2"))
+        , ("1.618 * 2", ok (Literal 1.618," * 2"))
+        , ("-1.618 * 2", ok (Literal -1.618," * 2"))
+        , ("1618e3 * 2", ok (Literal 1618000.0," * 2"))
+        , ("1.618e3 * 2", ok (Literal 1618.0," * 2"))
+        , ("1618e-3 * 2", ok (Literal 1.618," * 2"))
+        , ("1.618e+3 * 2", ok (Literal 1618.0," * 2))
+        , ("-1.618e+3 * 2", ok (Literal -1618.0," * 2))
+        , (" -1.618e+3 * 2", nope)
+        ]
+    parseTest (parseChoice parseLabel parseLiteral)
+        [ ("abc 123", ok (Label "abc", " 123")
+        , ("123 abc", ok (Literal 123.0, " abc")
+        , (".123 abc", nope)
+        , ("  123 abc", nope)
+        ]
+    parseTest parseParen
+        [ ("( abc )", ok (Paren (Label "abc"),""))
+        , ("( 123 )", ok (Paren (Literal 123.0, "")]
+        , ("( .123 )", nope)
+        , (" 123)", nope)
+        , ("( 123", nope)
+        ]
+    parseTest parseCalc
+        [ ("(( abc ))", ok (Paren (Paren (Label "abc")),""))
+        , ("(( 123 ))", ok (Paren (Paren (Literal 123.0)),""))
+        , ("(( 123 )))", ok (Paren (Paren (Literal 123.0)),"))])
+        , ("((( 123))", nope)
+        ]
+```
 
 ## 4. Handling parser errors
 Using `ReadS` is a good way to throw together a quick parser, but it
@@ -432,7 +506,11 @@ every function where the `Prelude.reads` function is used. You may use
 probably easily be re-written without `liftReadS`. You will not be
 able to use `liftReadS` to convert `parseCalc` or `parseChoice`.
 
-## 4.4. Write `parseChar` and `parseSymbol`
+## 4.4. Write `parse1Char` and `parseManyChars`
+Now that we have our own `Parser` type, let's write a few functions
+that will come in handy later.
+
+1. 
 
 ## 4.5. Use `fmap` and `parseSymbol` to re-write `parseLabel`
 
