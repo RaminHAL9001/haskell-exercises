@@ -27,15 +27,23 @@ for resources on how to solve these exercises. For a free online
 textbook, I recommend [Learn You a Haskell for Great Good](
 http://learnyouahaskell.com/ ).
 
-We will be using functions defined in the Haskell "Prelude" library
-which provides API functions compliant with the Haskell 2010 language
-standard. The documentation for Prelude is here:
+We will be using functions defined in the Haskell [`Prelude`](
+https://hackage.haskell.org/package/base-4.12.0.0/docs/Prelude.html )
+module (which is imported by default), and in the standard
+[`Data.Char`](
+https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
+) module which provides API functions compliant with the Haskell 2010
+language standard. The API reference documentation for these modules
+are here:
 
 * https://hackage.haskell.org/package/base-4.12.0.0/docs/Prelude.html
 * https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
 
 We will use the `ghc --make` command to build our program. Please
-create a new Haskell source file `Calculator.hs`.
+create a new Haskell source file `Calculator.hs` and configure your
+favorite text editor to execute `ghc --make` as it's build
+command. After you fix all the errors, an executable program called
+`Calculator` will be built, which you can run on the command line.
 
 We will be making use of the standard character predicates module
 `Data.Char`.
@@ -66,4 +74,6 @@ have answers yet.
 Check out the branch `all-answers` to see the final program. You can
 use the `git log` command to view the history of changes to the final
 `Calculator.hs` program, each commit in the history will be an answer
-to an exercise problem.
+to an exercise problem. I hope that you can see how the naive program
+is tranformed into an eloquent program simply by reading each diff in
+the commit history.
