@@ -79,10 +79,16 @@ recommend you use a Haskell REPL such as GHCI or the IPython Haskell
 notebook to write these functions. Once you have a function that
 works, copy and paste it from the REPL into your source code file.
 
+The functions used in this section are documented on the Hackage
+website, you may want to keep these open as tabs in your web browser.
+
+* [Prelude]( https://hackage.haskell.org/package/base-4.12.0.0/docs/Prelude.html ): https://hackage.haskell.org/package/base-4.12.0.0/docs/Prelude.html
+* [Data.Char]( https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html ): https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
+
 ### 3.1. Define a function for removing leading whitespace
-Please call this function `dropWS`. Use the `dropWhile` function and
-the `Data.Char.isSpace` function to define it. The function prototype
-should be:
+Please call this function `dropWS`. Use the `Prelude.dropWhile`
+function and the `Data.Char.isSpace` function to define it. The
+function prototype should be:
 
 ``` haskell
 dropWS :: String -> String
@@ -98,8 +104,9 @@ are correct:
   unchanged.
 
 ### 3.2. Define a function for parsing constant values such as "pi". 
-Please call this function `parseLabel`. Use the `span` function and the
-`Data.Char.isAlpha` function. The type of this function should be:
+Please call this function `parseLabel`. Use the `Prelude.span`
+function and the `Data.Char.isAlpha` function. The type of this
+function should be:
 
 ``` haskell
 parseLabel :: String -> (String, String)
@@ -120,9 +127,9 @@ are correct:
 
 ### 3.3. Define a function for parsing literal numbers such as "1.6182"
 Haskell's Prelude module provides standard parsers for data types like
-`Double`, all under the `reads` function. `reads` is polymorphic, so
-the implementation of `reads` is different depending on the type of
-the expression where it is used.
+`Double`, all under the `Prelude.reads` function. `reads` is
+polymorphic, so the implementation of `reads` is different depending
+on the type of the expression where it is used.
 
 1. Please write a comment in your program indicating the type of the
    function `reads`
@@ -183,7 +190,8 @@ parseChoice :: ReadS any -> ReadS any -> ReadS any
 
 So `parseChoice` should take two parsing functions of type `ReadS`,
 function `a` and function `b`. If function `a` returns an empty list,
-it should return the result of `b` instead.
+it should return the result of `b` instead. (**Hint:** can you define
+this function using the `++` operator?)
 
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
 The `parseLabel` function we wrote in exercise 1.2.2 was of type:
@@ -227,8 +235,8 @@ test it on the following inputs and make sure the outputs are correct:
 
 ### 3.6. Define a function for parsing parenthetical expressions.
 Haskell's Prelude module provides a standard parser for parenthetical
-expressions called `readParen`. Be sure to lookupt the documentation
-for how `readParen` works.
+expressions called `Prelude.readParen`. Be sure to lookupt the
+documentation for how `readParen` works.
 
 **Note** that `readParen` will automatically remove whitespaces inside
 of the parentheses for you, so there is no need to use `dropWS`.
