@@ -5,8 +5,9 @@ very simple arithmetic calculator language in Haskell.
 In these exercises, students will learn about the basics of "parser
 combinators" by creating our own simple parser combinator
 library. This will give us a deep understanding of how industrial
-parser combinator libraries such as Attoparsec or Megaparsec work
-internally.
+parser combinator libraries such as [Attoparsec](
+https://hackage.haskell.org/package/attoparsec ) or [Megaparsec](
+https://hackage.haskell.org/package/megaparsec ) work internally.
 
 We will begin by creating a naive parser, then iteratively upgrade our
 program. After each iteration our program will begin to take the form
@@ -34,13 +35,13 @@ standard. The documentation for Prelude is here:
 * https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
 
 We will use the `ghc --make` command to build our program. Please
-create a new Haskell source file `Calc.hs`.
+create a new Haskell source file `Calculator.hs`.
 
 We will be making use of the standard character predicates module
 `Data.Char`.
 
-Open `Calc.hs` in your editor declare it to be our Main program, and
-import the `Data.Char` library
+Open `Calculator.hs` in your editor declare it to be our Main program,
+and import the `Data.Char` library
 
 ``` haskell
 module Main where
