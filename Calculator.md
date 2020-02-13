@@ -69,7 +69,6 @@ main = mapM_ print (fmap (\ test -> (test, calcEval test)) testExpressions)
 ```
 
 ## 3. Define a naive parser
-
 For our parsing functions, we will be working with lists of characters
 `[Char]` (which is synonymous with the type `String`), so we can use
 some of Haskell's standard list functions.
@@ -126,6 +125,9 @@ are correct:
   not a label.
 
 ### 3.3. Define a function for parsing literal numbers such as "1.6182"
+Let's begin creating parsers for our `CalcAST` data type, beginning
+with the `Literal` constructor.
+
 Haskell's Prelude module provides standard parsers for data types like
 `Double`, all under the `Prelude.reads` function. `reads` is
 polymorphic, so the implementation of `reads` is different depending
@@ -138,60 +140,71 @@ on the type of the expression where it is used.
    `ReadS` data type.
    
 3. Write a function `parseLiteral` which uses `reads` to parse a
-   literal. `reads` will return an empty list if the input string does
-   not match the parser. The type of `parseLiteral` should be:
+   literal value and wrap that value in a `Literal`
+   constructor. `reads` will return an empty list if the input string
+   does not match the parser. The type of `parseLiteral` should be:
    
    ``` haskell
    parseLiteral :: String -> [(CalcAST, String)]
    ```
    
-   Test this function on the following inputs and make sure the
-   outputs are correct (note that `Literal` in the output should match
-   the constructor you defined for `CalcAST`):
+Test this function on the following inputs and make sure the utputs
+are correct (note that `Literal` in the output should match he
+constructor you defined for `CalcAST`):
 
-    * `parseLiteral "1618 * 2"` should output `[(Literal 1618.0," * 2")]`
-    
-    * `parseLiteral "-1618 * 2"` should output `[(Literal -1618.0," * 2")]`
+* `parseLiteral "1618 * 2"` should output `[(Literal 1618.0," * 2")]`
 
-    * `parseLiteral "1.618 * 2"` should output `[(Literal 1.618," * 2")]`
+* `parseLiteral "-1618 * 2"` should output `[(Literal -1618.0," * 2")]`
 
-    * `parseLiteral "-1.618 * 2"` should output `[(Literal -1.618," * 2")]`
+* `parseLiteral "1.618 * 2"` should output `[(Literal 1.618," * 2")]`
 
-    * `parseLiteral "1618e3 * 2"` should output `[(Literal 1618000.0," * 2")]`
+* `parseLiteral "-1.618 * 2"` should output `[(Literal -1.618," * 2")]`
 
-    * `parseLiteral "1.618e3 * 2"` should output `[(Literal 1618.0," * 2")]`
+* `parseLiteral "1618e3 * 2"` should output `[(Literal 1618000.0," * 2")]`
 
-    * `parseLiteral "1618e-3 * 2"` should output `[(Literal 1.618," * 2")]`
+* `parseLiteral "1.618e3 * 2"` should output `[(Literal 1618.0," * 2")]`
 
-    * `parseLiteral "1.618e+3 * 2"` should output `[(Literal 1618.0," * 2)]`
+* `parseLiteral "1618e-3 * 2"` should output `[(Literal 1.618," * 2")]`
 
-    * `parseLiteral "-1.618e+3 * 2"` should output `[(Literal -1618.0," * 2)]`
+* `parseLiteral "1.618e+3 * 2"` should output `[(Literal 1618.0," * 2)]`
 
-    * `parseLiteral " -1.618e+3 * 2"` should output `[]`, this should
-      fail because the string begins with whitespace.
+* `parseLiteral "-1.618e+3 * 2"` should output `[(Literal -1618.0," * 2)]`
 
-    * `parseLiteral ".618"` should output `[]`, this should fail
-      because we don't care about numbers starting with a decimal
-      point.
+* `parseLiteral " -1.618e+3 * 2"` should output `[]`, this should fail
+  because the string begins with whitespace.
 
-    * `parseLiteral "a.618"` should output `[]`, this should fail
-      because numbers must not begin with alphabetic characters.
+* `parseLiteral ".618"` should output `[]`, this should fail because
+  we don't care about numbers starting with a decimal point.
+
+* `parseLiteral "a.618"` should output `[]`, this should fail because
+  numbers must not begin with alphabetic characters.
 
 ### 3.4. Define a function for choosing between `parseLiteral` and `parseLabel`
 This function should take functions as parameters, also known as a
-"higher order function" (refer to chapter 6 of the "Learn You a
-Haskell for Great Good" textbook for more information).
+"higher order function" (refer to chapter 6 of the "[Learn You a
+Haskell for Great Good]( http://learnyouahaskell.com/ )" textbook for
+more information).
 
 Our function should be called `parseChoice` and should have the type:
 
 ``` haskell
-parseChoice :: ReadS any -> ReadS any -> ReadS any
+parseChoice :: ReadS a -> ReadS a -> ReadS a
 ```
 
 So `parseChoice` should take two parsing functions of type `ReadS`,
 function `a` and function `b`. If function `a` returns an empty list,
 it should return the result of `b` instead. (**Hint:** can you define
 this function using the `++` operator?)
+
+**NOTE** that the two input arguments to `parseChoice` both have type
+`ReadS a`, this means the `a` parse and the `b` parser must both
+return **the same type** of value. `parseChoice` will NOT be able to
+parse a choice between `ReadS Double` and `ReadS String`, and this is
+why it is necessary to wrap the output of these functions in our
+`CalcAST` data type.
+
+For now, make sure this function type checks, we will test in in the
+upcoming exercises.
 
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
 The `parseLabel` function we wrote in exercise 1.2.2 was of type:
@@ -298,4 +311,124 @@ are correct:
 
 * `parseCalc "((( 123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
+
+## 4. Handling parser errors
+Using `ReadS` is a good way to throw together a quick parser, but it
+doesn't tell us very much about what went wrong. Haskell provides a
+function `Prelude.error` for throwing an exception, however this will
+bring your entire program to a crashing halt.
+
+A more gentle way of reporting errors is to wrap function results in
+an 'Either' data type, with `Left` indicating an error condition, and
+`Right` indicating success.
+
+The `Either` data type is both a Monad, and an Applicative functor, so
+you can use it with `do` notation.
+
+It is good practice to use descriptive names for types, so let's
+define a type synonym called `ErrorMessage` which is simply a
+descriptive way of indicating a `String` type:
+
+``` haskell
+type ErrorMessage = String
+```
+
+### 4.1 Define a `Parser` type which uses `Either`.
+Recall that what type of `ReadS` is:
+
+``` haskell
+type ReadS any = String -> [(any, String)]
+```
+
+Notice that the type variable `any` is used to indicate that the type
+may produce results of different data types. For example, when `any`
+is `Int`, we must have parsed an integer value from the input
+string. When `any` is `(Int, String)`, we must have parsed a tuple
+containing an integer and a string.
+
+Let's create our own parser type that is similar to `ReadS`:
+
+``` haskell
+type Parser any = ...
+```
+
+As with `ReadS`, this parser type should be a function that always
+takes a `String` as input. **Unlike** `ReadS` our `Parser` should
+returns an `Either` type as it's result instead of a list. The
+`Either` type should evaluates to an `ErrorMessage` (a `String`) when
+the `Left` constructor is used, and evaluates to the a tuple
+containing the variable `any` type as the first tuple item, and the
+unparsed string remainder as the second tuple item.
+
+The answer to this exercise is to define is the type `Pasrer` as
+described.
+
+### 4.2. Write a function that converts a `ReadS` to our own `Parser` type
+Haskellers conventionally refer to functions which convert higher
+order-functions to even *higher* higher-order functions as "lifting"
+functions. So let's call this conversion function `liftReadS`. The
+type of `liftReadS` should be:
+
+``` haskell
+liftReadS :: ErrorMessage -> ReadS any -> Parser any
+```
+
+As you can see, `liftReadS` is a higher-order function that takes
+`ReadS` as an argument which we will convert. Let's call the function
+the "argument function", because it is taken as an argument.
+
+The `liftReadS` function should behave like so:
+
+* If the `ReadS` argument function returns an empty list, `liftReadS`
+  should return a `Left` containing the `ErrorMessage`.
+
+* If the `ReadS` argument function returns a list that contains
+  **exactly one** result tuple, return that result tuple in a `Right`
+  constructor.
+
+* If the `ReadS` argument function returns multiple results, return a
+  `Left` containing the error message. Prepend to the error message
+  string the message `"<ambiguous parse> "`.
+
+### 4.3. Rewrite all of our `ReadS` function as the `Parser` type
+This is going to take a bit of work.
+
+**BUT** this is one of Haskell's greatest strengths. When you make a
+change the types within your program, Haskell's type checker will
+notify, in the form of error messages, every part of your program that
+is effected by the change. Many Haskellers have reported that they
+feel safe making incremental changes to their program precisely
+because of this feature of the programming language.
+
+Make sure all parsing functions we have written so far have the
+following types:
+
+``` haskell
+dropWS :: Parser () -- never fails
+
+parseLiteral :: Parser CalcAST -- can use 'liftReadS' for this
+
+parseLabel :: Parser CalcAST
+
+parseParen :: Parser CalcAST -- can use 'liftReadS' for this
+
+parseCalc :: Parser CalcAST
+
+parseChoice :: Parser a -> Parser a -> Parser a
+```
+
+### Recommendation:
+I strongly recomend you **only** change the types of these functions
+at first without rewriting any other part of your code, and then try
+to recompile. The `ghc` compiler will produce a long list of compiler
+error messages. Use these error messages to your advantage; these
+errors are Haskell's way telling you how to change your program
+safely.
+
+### Hint: use `liftReadS` to convert functions that use `reads`
+Don't forget to use `liftReadS` that we defined in exercise 4.2 in
+every function where the `Prelude.reads` function is used. You may use
+`liftReadS` to convert all of your functions, but `parseLabel` and can
+probably easily be re-written without `liftReadS`. You will not be
+able to use `liftReadS` to convert `parseCalc` or `parseChoice`.
 
