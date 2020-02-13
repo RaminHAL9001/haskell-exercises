@@ -197,7 +197,7 @@ function `a` and function `b`. If function `a` returns an empty list,
 it should return the result of `b` instead. (**Hint:** can you define
 this function using the `++` operator?)
 
-**NOTE** that the two input arguments to `parseChoice` both have type
+**NOTE** that the two input parameters to `parseChoice` both have type
 `ReadS a`, this means the `a` parse and the `b` parser must both
 return **the same type** of value. `parseChoice` will NOT be able to
 parse a choice between `ReadS Double` and `ReadS String`, and this is
@@ -393,11 +393,16 @@ function `Prelude.error` for throwing an exception, however this will
 bring your entire program to a crashing halt.
 
 A more gentle way of reporting errors is to wrap function results in
-an 'Either' data type, with `Left` indicating an error condition, and
-`Right` indicating success.
+an `Either` data type, with `Left` indicating an error condition, and
+`Right` indicating success. Although `Either` is useful for all sorts
+of things, using it to indicate success or failure is a very common
+practice in Haskell.
 
-The `Either` data type is both a Monad, and an Applicative functor, so
-you can use it with `do` notation.
+The `Either` data type is both a Monad so you can use it with `do`
+notation. It is also an Applicative functor, so you can use `fmap` to
+change the value of the `Right` constructor, and you can use the apply
+operator (`<*>`) to apply functions of type `Parser` to pure
+functions.
 
 It is good practice to use descriptive names for types, so let's
 define a type synonym called `ErrorMessage` which is simply a
@@ -448,19 +453,20 @@ liftReadS :: ErrorMessage -> ReadS any -> Parser any
 ```
 
 As you can see, `liftReadS` is a higher-order function that takes
-`ReadS` as an argument which we will convert. Let's call the function
-the "argument function", because it is taken as an argument.
+`ReadS` as an parameter which we will convert. Let's call the function
+the "parameter function", because it is taken as a parameter (a.k.a
+argument) to the function.
 
 The `liftReadS` function should behave like so:
 
-* If the `ReadS` argument function returns an empty list, `liftReadS`
+* If the `ReadS` parameter function returns an empty list, `liftReadS`
   should return a `Left` containing the `ErrorMessage`.
 
-* If the `ReadS` argument function returns a list that contains
+* If the `ReadS` parameter function returns a list that contains
   **exactly one** result tuple, return that result tuple in a `Right`
   constructor.
 
-* If the `ReadS` argument function returns multiple results, return a
+* If the `ReadS` parameter function returns multiple results, return a
   `Left` containing the error message. Prepend to the error message
   string the message `"<ambiguous parse> "`.
 
@@ -506,14 +512,152 @@ every function where the `Prelude.reads` function is used. You may use
 probably easily be re-written without `liftReadS`. You will not be
 able to use `liftReadS` to convert `parseCalc` or `parseChoice`.
 
-## 4.4. Write `parse1Char` and `parseManyChars`
-Now that we have our own `Parser` type, let's write a few functions
-that will come in handy later.
+## 4.4. Write `parse1Char` and `parseManyChars` primitive parsers.
+Now that we have our own `Parser` type, lets break down some the
+parsing operations we will be doing often to their most fundamental
+"primitive" behaviors. We can then define other parsers in terms of
+these primitives. Let's begin by defining 2 new primitive functions.
 
-1. 
+1. `parse1Char` must have a type of:
 
-## 4.5. Use `fmap` and `parseSymbol` to re-write `parseLabel`
+    ``` haskell
+    parse1Char :: ErrorMessage -> (Char -> Bool) -> Parser Char
+    ```
 
-## 4.6. Write the `parseFunc` function for parsing "sin", "cosh", "exp", and "log"
+    This function takes a predicate function of type `(Char -> Bool)`
+    and apply it to the first character in the input string. If the
+    input string is empty, or if the predicate function evaluates to
+    `False`, the `parse1Char` function must evaluate to a `Left` value
+    containing the `ErrorMessage` string.
+
+2. `parseManyChars` must have a type of:
+
+    ``` haskell
+    parseManyChars :: ErrorMessage -> (Char -> Bool) -> Parser String
+    ```
+
+    This function takes a predicate of type `(Char -> Bool)` and uses
+    this predicate with the `Prelude.span` function on the input
+    string. If the input string is empty, or if the `span` function
+    matched zero characters, `parseManyChars` must evaluate to a
+    `Left` value containin the `ErrorMessage` string.
+
+## 4.5. Use `fmap` and `parseManyChars` to rewrite `parseLabel`
+Compare the `parseLabel` function to the `parseManyChars`
+function. Notice that they are essentially the same function, except
+`parseManyChars` is parameterized over a predicate, whereas
+`parseLabel` specifies the `Data.Char.isAlpha` predicate.
+
+Rewrite `parseLabel` to use `parseManyChars` with the `isAlpha`
+predicate, and use the `fmap` function to wrap the output of
+`parseManyChars` in the `Label` data constructor.
+
+## 4.6. Misleading error messages? Let's simplify our primitives.
+Lets look at what happens when we run the `parseParen` function with
+an empty string (run `parseParen ""` in GHCI to see what
+happens). What error message occurs?
+
+The error that occurs is probably "expecting a literal" (it could also
+be "expecting a label"). Why do we get this error when we are
+expecting a parenthetical expression?
+
+Inspecting the `parseParen` function we see that it was defined using
+the `parseChoice` function (which we first wrote in 3.4, and then
+rewrote in 4.3). As it is defined, `parseChoice` will ignore the
+`Left` values of the first parameter parser and always return the
+`Left` value of the second parameter parser.
+
+This could be lead to some very confusing and misleading error
+messages. To correct the problem, we may be tempted to write a new
+function like this:
+
+``` haskell
+parseLiteralOrLabel :: Parser CalcAST
+parseLiteralOrLabel inStr =
+    case parseChoice parseLiteral parseLabel inStr of
+        Left{}  -> Left "expecting symbol or label"
+        Right a -> Right a
+```
+
+But we would have to write a case statements every time we want to
+rewrite the error message. Writing `if` and `case` statements all
+throughout the program is the last thing a Haskeller wants to do.
+
+Can we write a higher-order function so we can express the logic of
+the parser in this in a more elegant way?
+
+### 4.6.1. Define a function that evaluates to an empty error message
+Create a function called `failParse` (the function `Prelude.fail` is a
+Haskell standard function and should not be renamed). This function
+should always evaluate to `Left` with an empty string as the error
+message. The type of this function should be:
+
+``` haskell
+failParse :: Parser void
+```
+
+(**NOTE:** the type variable named `void` above has no special
+meaning, it could also be defined as `failParse :: Parser a`. The use
+of `void` as a variable name here simply indicates to other
+programmers that the function will always fail.)
+
+### 4.6.2. Define a function that rewrites an error message
+Create a function called `expecting`. The type of this function should
+be:
+
+``` haskell
+expecting :: ErrorMessage -> Parser any -> Parser any
+```
+
+This function takes an error message and a parser function as
+parameters. The result of the parameter parser should be inspected with
+a `case` statement. If the result is any `Left` value, `expecting`
+should throw away the old `ErrorMessage` value and evaluate to a value
+of `Left` containing the new `ErrorMessage` given as an argument to
+`expecting`. The `ErrorMessaeg` value should be prepended by the string
+`"expecting "`. If the result of the argument parser is `Right`,
+`expecting` returns the `Right` value unchanged.
+
+### 4.6.3. Rewrite the primitive functions to use `failParse`
+We defined the primitive functions `parse1Char` and `parseManyChars`
+in section 4.4, and the `liftReadS` function in section
+4.2. Originally, the types of these functions were:
+
+``` haskell
+liftReadS :: ErrorMessage -> ReadS any -> Parser any
+
+parse1Char :: ErrorMessage -> (Char -> Bool) -> Parser Char
+
+parseManyChars :: ErrorMessage -> (Char -> Bool) -> Parser String
+```
+
+Change these functions so that they no longer take an `ErrorMessage`
+parameter, and instead evaluate to `failParse` rather than throwing
+the given `ErrorMessage`.
+
+The new types of these functions should be:
+
+``` haskell
+liftReadS :: ReadS any -> Parser any
+
+parse1Char :: (Char -> Bool) -> Parser Char
+
+parseManyChars :: (Char -> Bool) -> Parser String
+```
+
+You will also need to rewrite the following functions to make use of
+`expecting`, although their function types are unchanged from before.
+
+``` haskell
+parseLabel :: Parser CalcAST
+
+parseLiteral :: Parser CalcAST
+
+parseParen :: Parser CalcAST
+
+parseCalc :: Parser CalcAST
+```
+
+## 4.7. Write the `parseFunc` function for parsing "sin", "cosh", "exp", and "log"
 
 # 5. Turn `Parser` into our own custom monad

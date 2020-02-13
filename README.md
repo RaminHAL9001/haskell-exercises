@@ -11,14 +11,14 @@ https://hackage.haskell.org/package/megaparsec ) work internally.
 
 We will begin by creating a naive parser, then iteratively upgrade our
 program. After each iteration our program will begin to take the form
-of a more proper and eloquent Haskell parser. By "eloquent" I mean we
+of a more proper and elegant Haskell parser. By "elegant" I mean we
 will use more advanced concepts (e.g. Monads and Applicative Functors)
 to make our program much shorter, and therefore easier to change and
 improve.
 
 My hope is that students following these exercises will be able to
 understand the advanced concepts works "under the hood," because we
-will (hopefully) understand how the eloquent code is equivalent to the
+will (hopefully) understand how the elegant code is equivalent to the
 more simplistic, naive code.
 
 This document provides no instruction, rather students are expected to
@@ -75,5 +75,5 @@ Check out the branch `all-answers` to see the final program. You can
 use the `git log` command to view the history of changes to the final
 `Calculator.hs` program, each commit in the history will be an answer
 to an exercise problem. I hope that you can see how the naive program
-is tranformed into an eloquent program simply by reading each diff in
+is tranformed into an elegant program simply by reading each diff in
 the commit history.
