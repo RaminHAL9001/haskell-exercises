@@ -111,7 +111,11 @@ character opcode field fo the `Infix` constructor to an arithmetic
 function, then apply the function to each of the `CalcAST` operands in
 the `Infix` constructor.
 
-Hint:
+Refer to chapter 12 of [Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/a-fistful-of-monads#do-notation ) for more
+details about `do` notation.
+
+**Hint:**
 
 ``` haskell
 calcEval expr = case expr of
