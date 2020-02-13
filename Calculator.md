@@ -135,7 +135,7 @@ type Evaluate a = ...
 ```
 
 Rewrite the `getConstant` and `getArithmetic` functions defined above
-in section 2.1 and 2.2 (repsectively) to have the following type
+in exercise 2.1 and 2.2 (repsectively) to have the following type
 signatures:
 
 ``` haskell
@@ -159,14 +159,14 @@ This function should be defined for `sin`, `cos`, `tan`, `sqrt`,
 `atan`, `sinh`, `cosh`, `tanh`.
 
 Update the `calcEval` function to use `getFunction`, use `do` notation
-as you did in section 2.2.
+as you did in exercise 2.2.
 
 ### 2.4. Use applicative functor notation to evaluate `Infix` expressions
 You may have been tempted to write `calcEval` for the `Infix`
 constructor using only case statements:
 
 First, at the top of the `Calculator.hs` file, write `import
-Control.Appcliative`. This will provide to you the (`<$>`) and (`<*>`)
+Control.Applicative`. This will provide to you the (`<$>`) and (`<*>`)
 operators.
 
 ``` haskell
@@ -404,14 +404,14 @@ For now, just compile this program and make sure this function type
 checks, we will test in in the upcoming exercises.
 
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
-The `parseLabel` function we wrote in exercise 1.2.2 was of type:
+The `parseLabel` function we wrote in exercise 3.2 was of type:
 
 ``` haskell
 parseLabel :: String -> (String, String)
 ```
 
 But it would be easier to use this function with `parseChoice`
-(defined above in exercise 1.2.4) if the type of `parseLabel` were:
+(defined above in exercise 3.4) if the type of `parseLabel` were:
 
 ``` haskell
 parseLabel :: ReadS CalcAST
@@ -514,10 +514,10 @@ If you followed the recommendation at the start of this section, you
 have been using the REPL to test your functions up until now. Let's
 automate the test process now, and create a general test function for
 testing the parser. Copy and paste this code into `Calculator.hs`,
-adding new tests to the `main` function you wrote in section 1.
+adding new tests to the `main` function you wrote in exercise 1.
 
 ``` haskell
--- This function uses code that we defined in section 2.5
+-- This function uses code that we defined in exercise 2.5
 parseTest :: Eq a => ReadS a -> [(String, [(a, String)])] -> IO ()
 parseTest = testCase
 
@@ -832,7 +832,7 @@ of `Left` containing the new `ErrorMessage` given as an argument to
 
 ### 4.6.3. Rewrite the primitive functions to use `failParse`
 We defined the primitive functions `parse1Char` and `parseManyChars`
-in section 4.4, and the `liftReadS` function in section
+in exercise 4.4, and the `liftReadS` function in exercise
 4.2. Originally, the types of these functions were:
 
 ``` haskell
