@@ -5,30 +5,34 @@ and `Read` typeclasses.
 
 The data type will have 5 different constructors:
 
-- **Literals:** a constructor for literal integers. The constructor should
-  have only 1 field of type `Double` (a double-precision floating
-  point number).
+- **Literals:** a constructor called `Literal` for representing
+  literal number values. The constructor should have only 1 field of
+  type `Double` (a double-precision floating point number).
 
-- **Labeled constants:** A constructor for constant values such as
-  "pi". This constructor should contain only 1 field of type `String`
-  which will contain the name of constant value.
+- **Labeled constants:** A constructor called `Label` which represents
+  constant values such as "pi". This constructor should contain only 1
+  field of type `String` which will contain the name of constant
+  value.
 
-- **Infix operators:** A constructor which contains an infix operator
-  The infix operator should contain a single character such as "+",
-  "-", "*". The constructor should have 3 fields. Two of the fields
-  should contain a value of type `CalcAST` -- this will represent the
-  operands on either side of the infix operator. One of the fields
-  should be of type `Char` representing the infix operator character.
+- **Infix operators:** A constructor called `Infix` which represents
+  an infix operator The infix operator should contain a single
+  character such as "+", "-", "*". The constructor should have 3
+  fields. Two of the fields should contain a value of type `CalcAST`
+  -- this will represent the operands on either side of the infix
+  operator. One of the fields should be of type `Char` representing
+  the infix operator character.
 
-- **Labeled functions:** A constructor for functions like "sin",
-  "cosh", "exp", or "log". This constructor must have two fields. The
-  first field should be of type `String` and will represent the name
-  of the function ("sin", "cosh", "exp", "log"), the second field must
-  be of type `CalcAST` which will contain the operand of the function.
+- **Labeled functions:** A constructor called `Function` for
+  representing functions like "sin", "cosh", "exp", or "log". This
+  constructor must have two fields. The first field should be of type
+  `String` and will represent the name of the function ("sin", "cosh",
+  "exp", "log"), the second field must be of type `CalcAST` which will
+  contain the operand of the function.
 
-- **Parenthetical expressions:** A constructor for parentheses. This
-  constructor should contain a single field of type `CalcAST` which
-  contains the sub-expression that is written in parentheses.
+- **Parenthetical expressions:** A constructor called `Paren` for
+  representing expressions stored in parentheses. This constructor
+  should contain a single field of type `CalcAST` which contains the
+  sub-expression that is written in parentheses.
 
 ## 2. Define an evaluator
 Let's define a function called `calcEval`. The type of this function
@@ -50,8 +54,6 @@ calcEval expr = case expr of
     Label sym  -> Left ("unknown symbol " ++ show sym)
 ```
 
-Be sure `calcEval` works for all possible `CalcAST` constructors.
-
 You can write a simple test program like so:
 
 ``` haskell
@@ -60,13 +62,207 @@ testExpressions =
     [ Literal 1.618
     , Label "pi"
     , Label "Nami's Cosmological Constant"
-    , ...more tests...
-    , ...even more tests...
     ]
 
 main :: IO ()
 main = mapM_ print
     (fmap (\ test -> (test, calcEval test)) testExpressions)
+```
+
+Compile this program. You will get warning messages which you can
+ignore for now.
+
+### 2.1. Write a function to convert a `String` like "pi" to a `Double` value.
+Call this function `getConstant`, and should have this type:
+
+``` haskell
+getConstant :: String -> Either ErrorMessage Double
+```
+
+Define this function to return a value of `Right pi` when given the
+string `"pi"`, return a value of `Right (exp 1.0)` when given the
+string "e", return a value of `Left` with an error message string
+"unknown symbol", append the unknown symbol in as part of the error
+message.
+
+### 2.2. Write a function to convert an operator `Char` to an arithmetic function.
+When writing an evaluator for the `Infix` constructor, we need to
+produce a built-in arithmetic function such as `(+)` for a character
+representing that function, such as `'+'`.
+
+Write a function `getArithmetic` which should have the function type:
+
+``` haskell
+getArithmetic :: Char -> Either ErrorMessage (Double -> Double -> Double)
+```
+
+This function should return a `Right` constructor containing each of
+the functions `(+)`, `(-)`, `(*)`, and `(/)` if the `Char` argument
+matches the associated character representation of these functions. If
+an unknown `Char` value is
+
+The data type `Either` is a kind of monadic function type, which means
+we can use functions like our `getArithmetic` function using `do`
+notation.
+
+Write your `calcEval` function for the `Infix` constructor to make use
+of `do` notation, use the `getArithmetic` function to convert the
+character opcode field fo the `Infix` constructor to an arithmetic
+function, then apply the function to each of the `CalcAST` operands in
+the `Infix` constructor.
+
+Hint:
+
+``` haskell
+calcEval expr = case expr of
+    Infix opcode a b -> do
+        oper <- getArithmetic opcode
+        ... what goes here? ...
+```
+
+### 2.3. Use a type synonym to define a type of `Either ErrorMessage`
+We have already written `getConstant` in 2.1 and `getArithmetic` in
+2.2, both returning a type `Either ErrorMessage something` where
+`something` is a `Double` value or a function of type `(Double ->
+Double -> Double)`.
+
+We will be writting many more functions that evaluate to `Either
+ErrorMessage something`, so write a new type synonym called `Evaluate`
+that we can write instead so we don't have to do as much typing.
+
+``` haskell
+type Evaluate a = ...
+```
+
+Rewrite the `getConstant` and `getArithmetic` functions defined above
+in section 2.1 and 2.2 (repsectively) to have the following type
+signatures:
+
+``` haskell
+getConstant :: String -> Evaluate Double
+
+getArithmetic :: Char -> Evaluate (Double -> Double -> Double)
+```
+
+**Note** that you will still be able to use `do` notation as before,
+you are only renaming these function type, not changing their types.
+
+### 2.3. Write a function for evaluating trigonometrics and logarithmics
+The function should be called `getFunction` and hav a type of:
+
+``` haskell
+getFunction :: String -> Evaluate (Double -> Double)
+```
+
+This function should be defined for `sin`, `cos`, `tan`, `sqrt`,
+`exp`, `log`. If you want, you can also define it for `asin`, `acos`,
+`atan`, `sinh`, `cosh`, `tanh`.
+
+Update the `calcEval` function to use `getFunction`, use `do` notation
+as you did in section 2.2.
+
+### 2.4. Use applicative functor notation to evaluate `Infix` expressions
+You may have been tempted to write `calcEval` for the `Infix`
+constructor using only case statements:
+
+First, at the top of the `Calculator.hs` file, write `import
+Control.Appcliative`. This will provide to you the (`<$>`) and (`<*>`)
+operators.
+
+``` haskell
+calcEval :: CalcAST -> Either ErrorMessage Double
+calcEval expr = case expr of
+    Infix opcode a b -> do
+        opfunc <- getArithmetic opcode
+        case calcEval a of
+            Left err -> Left err
+            Right  a -> case calcEval b of
+                Left err -> Left err
+                Right  b -> Right (opfunc a b)
+```
+
+If this was similar to your solution, you will be happy to learn that
+there is a much easier way. The (`<$>`) and (`<*>`) operators provided
+by the `Control.Applicative` module can be used. Try the following in
+GHCI:
+
+``` haskell
+(+) <$> Right 5.0 <*> Right 2.0
+(-) <$> Right 5.0 <*> Right 2.0
+(*) <$> Right 5.0 <*> Right 2.0
+(+) <$> Left "left-operand error" <*> Right 2.0
+(+) <$> Right 5.0 <*> Left "right-operand error"
+(+) <$> Left "left-operand error" <*> Left "right-opearand error"
+```
+
+Use this technique to define `calcEval` for the `Infix` constructor.
+
+Review chapter 11 of [Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/functors-applicative-functors-and-monoids
+), for more information about applicative functors.
+
+### 2.5. Finish writing `calcEval`
+Make sure the `calcEval` is defined for every data constructor of the
+`CalcAST` data type. Run the following test program:
+
+``` haskell
+data TestCase input result
+    = ParseTest
+      { input    :: input
+      , expected :: result
+      , actual   :: result
+      }
+    deriving (Eq, Show)
+
+testCase :: Eq result => (input -> result) -> [(input, result)] -> IO ()
+testCase runTestFunction = mapM_ $ \ (exampleInput, expectedResult) ->
+    let result = TestCase
+            { input    = exampleInput
+            , expected = expectedResult
+            , actual   = runTestFunction exampleInput
+            }
+    in if expected result == actual result
+        then return ()          -- Do nothing if the parser is successful,
+        else fail (show result) -- otherwise halt the program with an error.
+
+-- | The 'AlwaysEqual' type is used to wrap values such that they can be shown
+-- with 'show', but when they are compared using '(==)', they are always equal.
+newtype AlwaysEqual a = AlwaysEqual a
+instance Show a => Show (AlwaysEqual a) where { show (AlwaysEqual a) = show a; }
+instance Eq (AlwaysEqual a) where { _ == _ = True; }
+
+leftEq :: Functor f => f (Either err any) -> f (Either (AlwaysEqual err) any)
+leftEq = fmap $ fmap $ \ result -> case result of
+    Left err -> Left (AlwaysEqual err)
+    Right  a -> Right a
+
+calcTest :: [(CalcAST, Evaluate Double)] -> IO ()
+calcTest expectedResults =
+    testCase (leftEq calcEval) (leftEq expectedResults)
+
+main :: IO ()
+main = do
+    let ok = return
+    let nope = Left ""
+    calcTest
+        [ (Literal 1.618, ok 1.618)
+        , (Literal 0, ok 0)
+        , (Label "pi", ok pi)
+        , (Label "e", ok (exp 1.0))
+        , (Label "Nami's Cosmological Constant", nope)
+        , (Paren (Literal 1.618), ok 1.618)
+        , (Paren (Label "FooBar"), nope)
+        , (Paren (Paren (Literal 1.618)), ok 1.618)
+        , (Paren (Paren (Paren (Label "FooBar"))), nope)
+        , (Infix '+' (Literal 1) (Literal 2), ok 3.0)
+        , (Infix '+' (Literal 5) (Infix '*' (Literal 2) (Literal 3)), ok 11.0)
+        , (Infix '*' (Paren (Infix '+' (Literal 5) (Literal 2))) (Literal 3), ok 21.0)
+        , (Infix '/' (Infix '*' (Literal 2) (Label "pi")) (Literal 2), ok pi)
+        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)), nope)
+        , (Function "sqrt" (Literal 2), ok (sqrt 2))
+        , (Function "sin (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
+        , (Paren (Function "log" (Paren (Function "exp" (Literal 1)))), ok (log (exp 1.0)))
+        ]
 ```
 
 ## 3. Define a naive parser
@@ -318,30 +514,37 @@ If you followed the recommendation at the start of this section, you
 have been using the REPL to test your functions up until now. Let's
 automate the test process now, and create a general test function for
 testing the parser. Copy and paste this code into `Calculator.hs`,
-replacing the old `main` function.
+adding new tests to the `main` function you wrote in section 1.
 
 ``` haskell
-data ParseTest a
-    = ParseTest
-      { inputString :: String
-      , expected    :: [(a, String)]
-      , actual      :: [(a, String)]
-      }
-    deriving Show
-
-parseTest :: ReadS a -> [(String, [(a, String)])] -> IO ()
-parseTest parse = mapM_ $ \ (inpStr, exp) ->
-    let result = ParseTest
-            { inputString = inpStr
-            , expected    = exp
-            , actual      = parse inpStr
-            }
-    in if expected result == actual result
-        then return ()          -- Do nothing if the parser is successful,
-        else fail (show result) -- otherwise halt the program with an error.
+-- This function uses code that we defined in section 2.5
+parseTest :: Eq a => ReadS a -> [(String, [(a, String)])] -> IO ()
+parseTest = testCase
 
 main :: IO ()
 main = do
+    let ok = return
+    let nope = Left ""
+    calcTest
+        [ (Literal 1.618, ok 1.618)
+        , (Literal 0, ok 0)
+        , (Label "pi", ok pi)
+        , (Label "e", ok (exp 1.0))
+        , (Label "Nami's Cosmological Constant", nope)
+        , (Paren (Literal 1.618), ok 1.618)
+        , (Paren (Label "FooBar"), nope)
+        , (Paren (Paren (Literal 1.618)), ok 1.618)
+        , (Paren (Paren (Paren (Label "FooBar"))), nope)
+        , (Infix '+' (Literal 1) (Literal 2), ok 3.0)
+        , (Infix '+' (Literal 5) (Infix '*' (Literal 2) (Literal 3)), ok 11.0)
+        , (Infix '*' (Paren (Infix '+' (Literal 5) (Literal 2))) (Literal 3), ok 21.0)
+        , (Infix '/' (Infix '*' (Literal 2) (Label "pi")) (Literal 2), ok pi)
+        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)), nope)
+        , (Function "sqrt" (Literal 2), ok (sqrt 2))
+        , (Function "sin (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
+        , (Paren (Function "log" (Paren (Function "exp" (Literal 1)))), ok (log (exp 1.0)))
+        ]
+    ---------------
     let ok = return
     let nope = []
     parseTest dropWS
@@ -495,9 +698,17 @@ parseParen :: Parser CalcAST -- can use 'liftReadS' for this
 parseCalc :: Parser CalcAST
 
 parseChoice :: Parser a -> Parser a -> Parser a
+
+parseTest :: Eq a => Parser a -> [(String, Either (a, String))] -> IO ()
+parseTest = testCase
+    -- Only the type of this function changes.
 ```
 
-### Recommendation:
+The `parseLiteral` function should evaluate to a `Left` error message
+when given an unmatching or empty string, the error message should be
+`"expecting a literal"`.
+
+#### Recommendation:
 I strongly recomend you **only** change the types of these functions
 at first without rewriting any other part of your code, and then try
 to recompile. The `ghc` compiler will produce a long list of compiler
@@ -505,7 +716,7 @@ error messages. Use these error messages to your advantage; these
 errors are Haskell's way telling you how to change your program
 safely.
 
-### Hint: use `liftReadS` to convert functions that use `reads`
+#### Hint: use `liftReadS` to convert functions that use `reads`
 Don't forget to use `liftReadS` that we defined in exercise 4.2 in
 every function where the `Prelude.reads` function is used. You may use
 `liftReadS` to convert all of your functions, but `parseLabel` and can
@@ -550,9 +761,10 @@ function. Notice that they are essentially the same function, except
 
 Rewrite `parseLabel` to use `parseManyChars` with the `isAlpha`
 predicate, and use the `fmap` function to wrap the output of
-`parseManyChars` in the `Label` data constructor.
+`parseManyChars` in the `Label` data constructor. The error message
+returned by `parseLabel` should be `"expecting a label"`.
 
-## 4.6. Misleading error messages? Let's simplify our primitives.
+## 4.6. Misleading error messages? Lets simplify our primitives.
 Lets look at what happens when we run the `parseParen` function with
 an empty string (run `parseParen ""` in GHCI to see what
 happens). What error message occurs?
