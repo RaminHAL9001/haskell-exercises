@@ -147,14 +147,16 @@ that we can write instead so we don't have to do as much typing.
 type Evaluate a = ...
 ```
 
-Rewrite the `getConstant` and `getArithmetic` functions defined above
-in exercise 2.1 and 2.2 (repsectively) to have the following type
-signatures:
+Rewrite the `getConstant`, `getArithmetic`, and `calcEval` functions
+defined above in exercise 2.1, 2.2, and 2 (repsectively) to have the
+following type signatures:
 
 ``` haskell
 getConstant :: String -> Evaluate Double
 
 getArithmetic :: Char -> Evaluate (Double -> Double -> Double)
+
+calcEval :: CalcAST Evaluate Double
 ```
 
 Refer to [chapter 8 of Learn You a Haskell for Great Good](
@@ -175,6 +177,10 @@ This function should be defined for `sin`, `cos`, `tan`, `sqrt`,
 `exp`, `log`. If you want, you can also define it for `asin`, `acos`,
 `atan`, `sinh`, `cosh`, `tanh`.
 
+As with the `getConstant` function (exercise 2.1) and the
+`getArithmetic` functino (exercise 2.2), report a useful error message
+if the function name passed to `getFunction` is unknown.
+
 Update the `calcEval` function to use `getFunction`, use `do` notation
 as you did in exercise 2.2.
 
@@ -190,18 +196,34 @@ operators.
 calcEval :: CalcAST -> Either ErrorMessage Double
 calcEval expr = case expr of
     Infix opcode a b -> do
-        opfunc <- getArithmetic opcode
+        oper <- getArithmetic opcode
         case calcEval a of
             Left err -> Left err
             Right  a -> case calcEval b of
                 Left err -> Left err
-                Right  b -> Right (opfunc a b)
+                Right  b -> Right (oper a b)
 ```
 
 If this was similar to your solution, you will be happy to learn that
-there is a much easier way. The (`<$>`) and (`<*>`) operators provided
-by the `Control.Applicative` module can be used. Try the following in
-GHCI:
+there is a much easier way.
+
+If you were very clever, you may have realized that `calcEval` is a
+function of type `Either` and therefore you can use it with `do`
+notation, calling `calcEval` recursively like so:
+
+``` haskell
+calcEval :: CalcAST -> Either ErrorMessage Double
+calcEval expr = case expr of
+    Infix opcode a b -> do
+        oper <- getArithmetic opcode
+        a <- calcEval a
+        b <- calcEval b
+        Right (oper a b)
+```
+
+However, there is an even more concise way to do this: using the
+applicative functor operators `(<$>)` and `(<*>)`, provided by the
+`Control.Applicative` module can be used. Try the following in GHCI:
 
 ``` haskell
 (+) <$> Right 5.0 <*> Right 2.0
@@ -212,7 +234,13 @@ GHCI:
 (+) <$> Left "left-operand error" <*> Left "right-opearand error"
 ```
 
-Use this technique to define `calcEval` for the `Infix` constructor.
+Use this technique to define `calcEval` for the `Infix` constructor,
+and for the `Function` constructor where you use the `getFunction`
+function we defined in exercise 2.4.
+
+The `(+)` syntax is called the "function section" feature, which is
+discussed in [chapter 6 of Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/higher-order-functions ).
 
 Review [chapter 11 of Learn You a Haskell for Great Good](
 http://learnyouahaskell.com/functors-applicative-functors-and-monoids
