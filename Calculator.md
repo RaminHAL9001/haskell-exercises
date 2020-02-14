@@ -351,7 +351,7 @@ are correct:
   start with whitespace, the function should return the string
   unchanged.
 
-### 3.2. Define a function for parsing constant values such as "pi". 
+### 3.2. Define a function for parsing constant values such as "pi"
 Please call this function `parseLabel`. Use the `Prelude.span`
 function and the `Data.Char.isAlpha` function. The type of this
 function should be:
@@ -415,13 +415,6 @@ constructor you defined for `CalcAST`):
 
 * `parseLiteral "1618e-3 * 2"` should output `[(Literal 1.618," * 2")]`
 
-* `parseLiteral "1.618e+3 * 2"` should output `[(Literal 1618.0," * 2)]`
-
-* `parseLiteral "-1.618e+3 * 2"` should output `[(Literal -1618.0," * 2)]`
-
-* `parseLiteral " -1.618e+3 * 2"` should output `[]`, this should fail
-  because the string begins with whitespace.
-
 * `parseLiteral ".618"` should output `[]`, this should fail because
   we don't care about numbers starting with a decimal point.
 
@@ -471,6 +464,15 @@ parseLabel :: ReadS CalcAST
 -- Recall that the type of `ReadS any` is `String -> [(any, String)]`.
 ```
 
+Likewise, change the type of `parseLiteral` (from exercise 3.3) from
+this:
+
+``` haskell
+parseLiteral :: String -> [(CalcAST, String)]
+```
+
+so that it is defined as a 'ReadS' prect function.
+
 Lets rename the old `parseLabel` function to `oldParseLabel` and write
 a new function `parseLabel`. The new `parseLabel` should take the
 output of `oldParseLabel` and return an empty list if the output of
@@ -491,9 +493,10 @@ test it on the following inputs and make sure the outputs are correct:
   this should fail because ".123" is not a valid literal number, nor
   is it a valid label.
 
-* `parseChoice parseLabel parseLiteral " 123 abc"` should return `[]`
-  because the input string begins with whitespace and neither
-  `parseLabel` nor `parseLiteral` should return a successful result.
+* `parseChoice parseLabel parseLiteral " abc 123"` should return `[]`
+  because the input string begins with whitespace followed by a label,
+  and neither `parseLabel` nor `parseLiteral` should return a
+  successful result.
 
 #### 3.5.1. Rewrite `dropWS` as a `ReadS` type function.
 The new `dropWS` function should never fail (never return an empty
