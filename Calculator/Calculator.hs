@@ -20,10 +20,23 @@ getConstant lbl = case lbl of
   "e"  -> Right (exp 1.0)
   _    -> Left ("unknown constant " ++ show lbl)
 
+getArithmetic :: CalcOpCode -> Either ErrorMessage (CalcNumber -> CalcNumber -> CalcNumber)
+getArithmetic opcode = case opcode of
+  '+' -> Right (+)
+  '-' -> Right (-)
+  '*' -> Right (*)
+  '/' -> Right (/)
+  _   -> Left ("unknown infix operator " ++ show opcode)
+
 calcEval :: CalcAST -> Either ErrorMessage CalcNumber
 calcEval expr = case expr of
   Literal         lit  -> Right lit
   Label           sym  -> getConstant sym
+  Infix opcode  a  b   -> do
+    oper <- getArithmetic opcode
+    a    <- calcEval a
+    b    <- calcEval b
+    Right (oper a b)
 
 testExpressions :: [CalcAST]
 testExpressions =
