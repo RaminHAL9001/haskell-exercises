@@ -34,6 +34,11 @@ The data type will have 5 different constructors:
   should contain a single field of type `CalcAST` which contains the
   sub-expression that is written in parentheses.
 
+For more information on how to do this, refer to [chapter 8 of Learn
+You a Haskell for Great Good](
+http://learnyouahaskell.com/making-our-own-types-and-typeclasses#algebraic-data-types
+).
+
 ## 2. Define an evaluator
 Let's define a function called `calcEval`. The type of this function
 should be:
@@ -71,6 +76,10 @@ main = mapM_ print
 
 Compile this program. You will get warning messages which you can
 ignore for now.
+
+For more information on how to do the exercises in this section, refer
+to [chapter 4 of Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/chapters ).
 
 ### 2.1. Write a function to convert a `String` like "pi" to a `Double` value.
 Call this function `getConstant`, and should have this type:
@@ -111,7 +120,7 @@ character opcode field fo the `Infix` constructor to an arithmetic
 function, then apply the function to each of the `CalcAST` operands in
 the `Infix` constructor.
 
-Refer to chapter 12 of [Learn You a Haskell for Great Good](
+Refer to [chapter 12 of Learn You a Haskell for Great Good](
 http://learnyouahaskell.com/a-fistful-of-monads#do-notation ) for more
 details about `do` notation.
 
@@ -119,8 +128,8 @@ details about `do` notation.
 
 ``` haskell
 calcEval expr = case expr of
-    Infix opcode a b -> do
-        oper <- getArithmetic opcode
+    Infix opcode a b -> do            --- <- Here is the 'do' keyword,
+        oper <- getArithmetic opcode  --- <- here we use our 'getArithmetic' function.
         ... what goes here? ...
 ```
 
@@ -148,10 +157,14 @@ getConstant :: String -> Evaluate Double
 getArithmetic :: Char -> Evaluate (Double -> Double -> Double)
 ```
 
+Refer to [chapter 8 of Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/making-our-own-types-and-typeclasses#type-synonyms
+).
+
 **Note** that you will still be able to use `do` notation as before,
 you are only renaming these function type, not changing their types.
 
-### 2.3. Write a function for evaluating trigonometrics and logarithmics
+### 2.4. Write a function for evaluating trigonometrics and logarithmics
 The function should be called `getFunction` and hav a type of:
 
 ``` haskell
@@ -165,7 +178,7 @@ This function should be defined for `sin`, `cos`, `tan`, `sqrt`,
 Update the `calcEval` function to use `getFunction`, use `do` notation
 as you did in exercise 2.2.
 
-### 2.4. Use applicative functor notation to evaluate `Infix` expressions
+### 2.5. Use applicative functor notation to evaluate `Infix` expressions
 You may have been tempted to write `calcEval` for the `Infix`
 constructor using only case statements:
 
@@ -201,13 +214,14 @@ GHCI:
 
 Use this technique to define `calcEval` for the `Infix` constructor.
 
-Review chapter 11 of [Learn You a Haskell for Great Good](
+Review [chapter 11 of Learn You a Haskell for Great Good](
 http://learnyouahaskell.com/functors-applicative-functors-and-monoids
 ), for more information about applicative functors.
 
-### 2.5. Finish writing `calcEval`
+### 2.6. Finish writing `calcEval`
 Make sure the `calcEval` is defined for every data constructor of the
-`CalcAST` data type. Run the following test program:
+`CalcAST` data type. Copy the following test code into
+`Calculator.hs`, and then build and run the program.
 
 ``` haskell
 data TestCase input result
@@ -382,9 +396,9 @@ constructor you defined for `CalcAST`):
 
 ### 3.4. Define a function for choosing between `parseLiteral` and `parseLabel`
 This function should take functions as parameters, also known as a
-"higher order function" (refer to chapter 6 of the "[Learn You a
-Haskell for Great Good]( http://learnyouahaskell.com/ )" textbook for
-more information).
+"higher order function" (refer to [chapter 6 of Learn You a Haskell
+for Great Good]( http://learnyouahaskell.com/ ) textbook for more
+information).
 
 Our function should be called `parseChoice` and should have the type:
 
