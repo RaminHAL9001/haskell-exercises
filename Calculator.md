@@ -549,17 +549,17 @@ parseParen :: ReadS CalcAST
 Test this function on the following inputs and make sure the outputs
 are correct:
 
-* `parseParen "( abc )"` should output `[(Paren (Label "abc"),"")]`
+* `parseParen "(abc)"` should output `[(Paren (Label "abc"),"")]`
 
-* `parseParen "( 123 )"` should output `[(Paren (Literal 123.0, "")]`
+* `parseParen "(123)"` should output `[(Paren (Literal 123.0, "")]`
 
-* `parseParen "( .123 )"` should output `[]`, this should fail because
+* `parseParen "(.123)"` should output `[]`, this should fail because
   ".123" is not a valid literal number or label.
 
 * `parseParen " 123)"` should output `[]`, this should fail because
   the expression does not begin with a parenthesis.
 
-* `parseParen "( 123"` should output `[]`, this should fail because
+* `parseParen "(123"` should output `[]`, this should fail because
   the expression does not have balanced parenthesis.
 
 ### 3.9. Recursively parsing parentheses
@@ -591,13 +591,13 @@ are correct:
 
 * `parseCalc "1618.0e-3"` should output `[(Literal 1.618, "")]`
 
-* `parseCalc "(( abc ))"` should output `[(Paren (Paren (Label "abc")),"")]`
+* `parseCalc "((abc))"` should output `[(Paren (Paren (Label "abc")),"")]`
 
-* `parseCalc "(( 123 ))"` should output `[(Paren (Paren (Literal 123.0)),"")]`
+* `parseCalc "((123))"` should output `[(Paren (Paren (Literal 123.0)),"")]`
 
-* `parseCalc "(( 123 )))"` should output `[(Paren (Paren (Literal 123.0)),")")]`
+* `parseCalc "((123)))"` should output `[(Paren (Paren (Literal 123.0)),")")]`
 
-* `parseCalc "((( 123))" `should output `[]`, this should fail because
+* `parseCalc "(((123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
 
 ### 3.10. Writing a general testing function
@@ -609,7 +609,7 @@ adding new tests to the `main` function you wrote in exercise 1.
 
 ``` haskell
 -- This function uses code that we defined in exercise 2.5
-parseTest :: Eq a => ReadS a -> [(String, [(a, String)])] -> IO ()
+parseTest :: (Eq a, Show a) => ReadS a -> [(String, [(a, String)])] -> IO ()
 parseTest = testCase
 
 main :: IO ()
@@ -630,11 +630,15 @@ main = do
         , (Infix '+' (Literal 5) (Infix '*' (Literal 2) (Literal 3)), ok 11.0)
         , (Infix '*' (Paren (Infix '+' (Literal 5) (Literal 2))) (Literal 3), ok 21.0)
         , (Infix '/' (Infix '*' (Literal 2) (Label "pi")) (Literal 2), ok pi)
-        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)), nope)
+        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)) (Literal 2), nope)
         , (Function "sqrt" (Literal 2), ok (sqrt 2))
-        , (Function "sin (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
+        , (Function "sin" (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
         , (Paren (Function "log" (Paren (Function "exp" (Literal 1)))), ok (log (exp 1.0)))
         ]
+    -- If any of the tests above failed, the program will have halted
+    -- with 'fail' on that test, as the behavior is defined on line
+    -- 82. If all tests passed, this final line of code is executed.
+    putStrLn "All evaluator tests passed."
     ---------------
     let ok = return
     let nope = []
@@ -649,35 +653,34 @@ main = do
         ]
     parseTest parseLiteral
         [ ("1618 * 2", ok (Literal 1618.0," * 2"))
-        , ("-1618 * 2", ok (Literal -1618.0," * 2"))
+        , ("-1618 * 2", ok (Literal (-1618.0)," * 2"))
         , ("1.618 * 2", ok (Literal 1.618," * 2"))
-        , ("-1.618 * 2", ok (Literal -1.618," * 2"))
+        , ("-1.618 * 2", ok (Literal (-1.618)," * 2"))
         , ("1618e3 * 2", ok (Literal 1618000.0," * 2"))
         , ("1.618e3 * 2", ok (Literal 1618.0," * 2"))
         , ("1618e-3 * 2", ok (Literal 1.618," * 2"))
-        , ("1.618e+3 * 2", ok (Literal 1618.0," * 2))
-        , ("-1.618e+3 * 2", ok (Literal -1618.0," * 2))
-        , (" -1.618e+3 * 2", nope)
+        , (" -1.618e3 * 2", nope)
         ]
     parseTest (parseChoice parseLabel parseLiteral)
-        [ ("abc 123", ok (Label "abc", " 123")
-        , ("123 abc", ok (Literal 123.0, " abc")
+        [ ("abc 123", ok (Label "abc", " 123"))
+        , ("123 abc", ok (Literal 123.0, " abc"))
         , (".123 abc", nope)
         , ("  123 abc", nope)
         ]
     parseTest parseParen
-        [ ("( abc )", ok (Paren (Label "abc"),""))
-        , ("( 123 )", ok (Paren (Literal 123.0, "")]
-        , ("( .123 )", nope)
+        [ ("(abc)", ok (Paren (Label "abc"),""))
+        , ("(123)", ok (Paren (Literal 123.0), ""))
+        , ("(.123)", nope)
         , (" 123)", nope)
-        , ("( 123", nope)
+        , ("(123", nope)
         ]
     parseTest parseCalc
-        [ ("(( abc ))", ok (Paren (Paren (Label "abc")),""))
-        , ("(( 123 ))", ok (Paren (Paren (Literal 123.0)),""))
-        , ("(( 123 )))", ok (Paren (Paren (Literal 123.0)),"))])
-        , ("((( 123))", nope)
+        [ ("((abc))", ok (Paren (Paren (Label "abc")),""))
+        , ("((123))", ok (Paren (Paren (Literal 123.0)),""))
+        , ("((123)))", ok (Paren (Paren (Literal 123.0)),")"))
+        , ("(((123))", nope)
         ]
+    putStrLn "All parser tests passed."
 ```
 
 ## 4. Handling parser errors
