@@ -1,0 +1,14 @@
+name:                Calculator
+version:             0.1.0.0
+author:              Ramin Honary
+copyright:           Ramin Honary, 2020
+license:             GPL3
+git:                 https://github.com/RaminHAL9001/haskell-exercises
+cabal-version:       >=1.10
+build-type:          Simple
+
+executable Calculator
+  main-is:             Calculator.hs
+  default-language:    Haskell2010
+  -- other-modules:
+  build-depends:       base >=4.12 && <4.13
