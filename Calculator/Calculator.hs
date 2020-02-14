@@ -81,9 +81,12 @@ parseLabel inStr = case oldParseLabel inStr of
     oldParseLabel = span isAlpha
 
 parseLiteral :: CalcParser CalcAST
-parseLiteral inStr = case reads inStr of
-  [(num, outStr)] -> [(Literal num, outStr)]
-  _               -> []
+parseLiteral inStr = case inStr of
+  []  -> []
+  c:_ -> if c /= '-' && not (isNumber c) then [] else
+    case reads inStr of
+      [(num, outStr)] -> [(Literal num, outStr)]
+      _               -> []
 
 parseExpr :: CalcParser CalcAST
 parseExpr = parseChoice parseLabel parseLiteral
@@ -92,6 +95,9 @@ parseParen :: CalcParser CalcAST
 parseParen inStr = case take 1 (readParen True parseCalc inStr) of
   [(expr, outStr)] -> [(Paren expr, outStr)]
   _                -> []
+
+parseCalc :: CalcParser CalcAST
+parseCalc = parseChoice parseExpr parseParen
 
 --------------------------------------------------------------------------------
 -- Tests
