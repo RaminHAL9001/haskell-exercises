@@ -14,11 +14,16 @@ data CalcAST
 
 type ErrorMessage = String
 
+getConstant :: CalcLabel -> Either ErrorMessage CalcNumber
+getConstant lbl = case lbl of
+  "pi" -> Right pi
+  "e"  -> Right (exp 1.0)
+  _    -> Left ("unknown constant " ++ show lbl)
+
 calcEval :: CalcAST -> Either ErrorMessage CalcNumber
 calcEval expr = case expr of
   Literal         lit  -> Right lit
-  Label           "pi" -> Right pi
-  Label           sym  -> Left ("unknown symbol " ++ show sym)
+  Label           sym  -> getConstant sym
 
 testExpressions :: [CalcAST]
 testExpressions =
