@@ -56,14 +56,74 @@ calcEval expr = case expr of
   Function lbl    arg  -> do
     func <- getFunction lbl
     func <$> calcEval arg
+  Paren           expr -> calcEval expr
 
-testExpressions :: [CalcAST]
-testExpressions =
-    [ Literal 1.618
-    , Label "pi"
-    , Label "Nami's Cosmological Constant"
-    ]
+--------------------------------------------------------------------------------
+-- Tests
+
+data TestCase input result
+    = TestCase
+      { input    :: input
+      , expected :: result
+      , actual   :: result
+      }
+    deriving (Eq, Show)
+
+testCase
+    :: (Eq result, Show input, Show result)
+    => (input -> result) -> [(input, result)] -> IO ()
+testCase runTestFunction = mapM_ $ \ (exampleInput, expectedResult) ->
+    let result = TestCase
+            { input    = exampleInput
+            , expected = expectedResult
+            , actual   = runTestFunction exampleInput
+            }
+    in if expected result == actual result
+        then return ()          -- Do nothing if the parser is successful,
+        else fail (show result) -- otherwise halt the program with an error.
+
+-- | The 'AlwaysEqual' type is used to wrap values such that they can be shown
+-- with 'show', but when they are compared using '(==)', they are always equal.
+newtype AlwaysEqual a = AlwaysEqual a
+instance Show a => Show (AlwaysEqual a) where { show (AlwaysEqual a) = show a; }
+instance Eq (AlwaysEqual a) where { _ == _ = True; }
+
+leftEq :: Either err any -> Either (AlwaysEqual err) any
+leftEq result = case result of
+    Left err -> Left (AlwaysEqual err)
+    Right  a -> Right a
+
+calcTest :: [(CalcAST, Evaluate Double)] -> IO ()
+calcTest expectedResults =
+    testCase (leftEq <$> calcEval) (fmap leftEq <$> expectedResults)
+
+--------------------------------------------------------------------------------
+-- Main
 
 main :: IO ()
-main = mapM_ print
-    (fmap (\ test -> (test, calcEval test)) testExpressions)
+main = do
+    let ok = return
+    let nope = Left ""
+    calcTest
+        [ (Literal 1.618, ok 1.618)
+        , (Literal 0, ok 0)
+        , (Label "pi", ok pi)
+        , (Label "e", ok (exp 1.0))
+        , (Label "Nami's Cosmological Constant", nope)
+        , (Paren (Literal 1.618), ok 1.618)
+        , (Paren (Label "FooBar"), nope)
+        , (Paren (Paren (Literal 1.618)), ok 1.618)
+        , (Paren (Paren (Paren (Label "FooBar"))), nope)
+        , (Infix '+' (Literal 1) (Literal 2), ok 3.0)
+        , (Infix '+' (Literal 5) (Infix '*' (Literal 2) (Literal 3)), ok 11.0)
+        , (Infix '*' (Paren (Infix '+' (Literal 5) (Literal 2))) (Literal 3), ok 21.0)
+        , (Infix '/' (Infix '*' (Literal 2) (Label "pi")) (Literal 2), ok pi)
+        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)) (Literal 2), nope)
+        , (Function "sqrt" (Literal 2), ok (sqrt 2))
+        , (Function "sin" (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
+        , (Paren (Function "log" (Paren (Function "exp" (Literal 1)))), ok (log (exp 1.0)))
+        ]
+    -- If any of the tests above failed, the program will have halted
+    -- with 'fail' on that test, as the behavior is defined on line
+    -- 82. If all tests passed, this final line of code is executed.
+    putStrLn "All tests passed."
