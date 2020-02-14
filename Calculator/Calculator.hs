@@ -59,6 +59,12 @@ calcEval expr = case expr of
   Paren           expr -> calcEval expr
 
 --------------------------------------------------------------------------------
+-- Parsers
+
+dropWS :: String -> String
+dropWS = dropWhile isSpace
+
+--------------------------------------------------------------------------------
 -- Tests
 
 data TestCase input result
