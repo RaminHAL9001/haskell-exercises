@@ -54,9 +54,9 @@ To get you started, you can begin defining `calcEval` like so:
 ``` haskell
 calcEval :: CalcAST -> Either ErrorMessage Double
 calcEval expr = case expr of
-    Literal a  -> Right a
-    Label "pi" -> Right pi
-    Label sym  -> Left ("unknown symbol " ++ show sym)
+    Literal lit  -> Right lit
+    Label   "pi" -> Right pi
+    Label   sym  -> Left ("unknown symbol " ++ show sym)
 ```
 
 You can write a simple test program like so:
