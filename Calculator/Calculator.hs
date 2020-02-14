@@ -14,7 +14,9 @@ data CalcAST
 
 type ErrorMessage = String
 
-getConstant :: CalcLabel -> Either ErrorMessage CalcNumber
+type Evaluate a = Either ErrorMessage a
+
+getConstant :: CalcLabel -> Evaluate CalcNumber
 getConstant lbl = case lbl of
   "pi" -> Right pi
   "e"  -> Right (exp 1.0)
@@ -28,7 +30,7 @@ getArithmetic opcode = case opcode of
   '/' -> Right (/)
   _   -> Left ("unknown infix operator " ++ show opcode)
 
-calcEval :: CalcAST -> Either ErrorMessage CalcNumber
+calcEval :: CalcAST -> Evaluate CalcNumber
 calcEval expr = case expr of
   Literal         lit  -> Right lit
   Label           sym  -> getConstant sym
