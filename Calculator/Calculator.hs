@@ -69,6 +69,14 @@ dropWS = dropWhile isSpace
 parseLabel :: String -> (String, String)
 parseLabel = span isAlpha
 
+-- type ReadS a = String -> [(a, String)]
+-- reads :: Read a => ReadS a
+
+parseLiteral :: String -> [(CalcAST, String)]
+parseLiteral inStr = case reads inStr of
+  [(num, outStr)] -> [(Literal num, outStr)]
+  _               -> []
+
 --------------------------------------------------------------------------------
 -- Tests
 
