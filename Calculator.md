@@ -253,14 +253,16 @@ Make sure the `calcEval` is defined for every data constructor of the
 
 ``` haskell
 data TestCase input result
-    = ParseTest
+    = TestCase
       { input    :: input
       , expected :: result
       , actual   :: result
       }
     deriving (Eq, Show)
 
-testCase :: Eq result => (input -> result) -> [(input, result)] -> IO ()
+testCase
+    :: (Eq result, Show input, Show result)
+    => (input -> result) -> [(input, result)] -> IO ()
 testCase runTestFunction = mapM_ $ \ (exampleInput, expectedResult) ->
     let result = TestCase
             { input    = exampleInput
@@ -277,14 +279,14 @@ newtype AlwaysEqual a = AlwaysEqual a
 instance Show a => Show (AlwaysEqual a) where { show (AlwaysEqual a) = show a; }
 instance Eq (AlwaysEqual a) where { _ == _ = True; }
 
-leftEq :: Functor f => f (Either err any) -> f (Either (AlwaysEqual err) any)
-leftEq = fmap $ fmap $ \ result -> case result of
+leftEq :: Either err any -> Either (AlwaysEqual err) any
+leftEq result = case result of
     Left err -> Left (AlwaysEqual err)
     Right  a -> Right a
 
 calcTest :: [(CalcAST, Evaluate Double)] -> IO ()
 calcTest expectedResults =
-    testCase (leftEq calcEval) (leftEq expectedResults)
+    testCase (leftEq <$> calcEval) (fmap leftEq <$> expectedResults)
 
 main :: IO ()
 main = do
@@ -304,11 +306,15 @@ main = do
         , (Infix '+' (Literal 5) (Infix '*' (Literal 2) (Literal 3)), ok 11.0)
         , (Infix '*' (Paren (Infix '+' (Literal 5) (Literal 2))) (Literal 3), ok 21.0)
         , (Infix '/' (Infix '*' (Literal 2) (Label "pi")) (Literal 2), ok pi)
-        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)), nope)
+        , (Infix '+' (Infix '&' (Literal 0) (Literal 1)) (Literal 2), nope)
         , (Function "sqrt" (Literal 2), ok (sqrt 2))
-        , (Function "sin (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
+        , (Function "sin" (Paren (Infix '*' (Literal 2) (Label "pi"))), ok (sin (2*pi)))
         , (Paren (Function "log" (Paren (Function "exp" (Literal 1)))), ok (log (exp 1.0)))
         ]
+    -- If any of the tests above failed, the program will have halted
+    -- by evaluating 'fail'. If all tests passed, this final line of
+    -- code is executed.
+    putStrLn "All tests passed."
 ```
 
 ## 3. Define a naive parser
