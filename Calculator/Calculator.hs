@@ -66,6 +66,9 @@ calcEval expr = case expr of
 dropWS :: String -> String
 dropWS = dropWhile isSpace
 
+parseChoice :: ReadS a -> ReadS a -> ReadS a
+parseChoice a b inStr = a inStr ++ b inStr
+
 parseLabel :: String -> (String, String)
 parseLabel = span isAlpha
 
