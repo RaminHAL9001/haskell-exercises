@@ -483,22 +483,7 @@ the only element of that list.
 Test our new `parseLabel` function by using it with `parseChoice`,
 test it on the following inputs and make sure the outputs are correct:
 
-* `parseChoice parseLabel parseLiteral "abc 123"` should return
-  `[(Label "abc"," 123")]`
-    
-* `parseChoice parseLabel parseLiteral "123 abc"` should return
-  `[(Literal 123.0," abc")]`
-
-* `parseChoice parseLabel parseLiteral ".123 abc"` should return `[]`,
-  this should fail because ".123" is not a valid literal number, nor
-  is it a valid label.
-
-* `parseChoice parseLabel parseLiteral " abc 123"` should return `[]`
-  because the input string begins with whitespace followed by a label,
-  and neither `parseLabel` nor `parseLiteral` should return a
-  successful result.
-
-#### 3.5.1. Rewrite `dropWS` as a `ReadS` type function.
+#### 3.6. Rewrite `dropWS` as a `ReadS` type function
 The new `dropWS` function should never fail (never return an empty
 list), and it should be of type:
 
@@ -510,7 +495,26 @@ It may seem unnecessary to wrap the output in a tuple with an empty
 value, but this will make `dropWS` easier to use in higher order
 functions later on.
 
-### 3.6. Define a function for parsing parenthetical expressions.
+### 3.7. Create `parseExpr` which parses a choice between `parseLabel` and `parseLiteral`
+This function should use the `parseChoice` function we defined in
+exercise 3.4. The type of this function should be:
+
+``` haskell
+parseExpr :: ReadS CalcAST
+```
+
+* `parseExpr "abc 123"` should return `[(Label "abc"," 123")]`
+    
+* `parseExpr "123 abc"` should return `[(Literal 123.0," abc")]`
+
+* `parseExpr ".123 abc"` should return `[]`, this should fail because
+  ".123" is not a valid literal number, nor is it a valid label.
+
+* `parseExpr " abc 123"` should return `[]` because the input string
+  begins with whitespace followed by a label, and neither `parseLabel`
+  nor `parseLiteral` should return a successful result.
+
+### 3.8. Define a function for parsing parenthetical expressions
 Haskell's Prelude module provides a standard parser for parenthetical
 expressions called `Prelude.readParen`. Be sure to lookupt the
 documentation for how `readParen` works.
@@ -518,9 +522,9 @@ documentation for how `readParen` works.
 **Note** that `readParen` will automatically remove whitespaces inside
 of the parentheses for you, so there is no need to use `dropWS`.
 
-Write a function called `parseParen` which uses `readParen`, and pass
-`parseChoice parseLabel parseLiteral` as the expression to be parsed
-by `readParen`. The type of `parseParen` should be:
+Write a function called `parseParen` which uses `readParen`, and use
+`parseExpr` as the expression to be parsed by `readParen`. The type of
+`parseParen` should be:
 
 ``` haskell
 parseParen :: ReadS CalcAST
@@ -542,7 +546,7 @@ are correct:
 * `parseParen "( 123"` should output `[]`, this should fail because
   the expression does not have balanced parenthesis.
 
-### 3.7. Recursively parsing parentheses
+### 3.9. Recursively parsing parentheses
 Now we want to be able to parse nested parentheses. Make use of the
 `parseChoice` function to chose between parsing an expression with
 parentheses and an expression without parentheses. Write a function
@@ -564,7 +568,7 @@ are correct:
 * `parseCalc "((( 123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
 
-### 3.8. Writing a general testing function
+### 3.10. Writing a general testing function
 If you followed the recommendation at the start of this section, you
 have been using the REPL to test your functions up until now. Let's
 automate the test process now, and create a general test function for
