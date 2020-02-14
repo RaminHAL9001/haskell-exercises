@@ -52,9 +52,10 @@ calcEval expr = case expr of
   Label           sym  -> getConstant sym
   Infix opcode  a  b   -> do
     oper <- getArithmetic opcode
-    a    <- calcEval a
-    b    <- calcEval b
-    Right (oper a b)
+    oper <$> calcEval a <*> calcEval b
+  Function lbl    arg  -> do
+    func <- getFunction lbl
+    func <$> calcEval arg
 
 testExpressions :: [CalcAST]
 testExpressions =
