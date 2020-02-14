@@ -516,10 +516,26 @@ parseExpr :: ReadS CalcAST
 
 ### 3.8. Define a function for parsing parenthetical expressions
 Haskell's Prelude module provides a standard parser for parenthetical
-expressions called `Prelude.readParen`. Be sure to lookupt the
+expressions called `Prelude.readParen`. Be sure to lookup the
 documentation for how `readParen` works.
 
-**Note** that `readParen` will automatically remove whitespaces inside
+Try parsing with `readParens` the following expression in GHCI:
+
+``` haskell
+readParens True (reads :: ReadS Int) "(1)"
+readParens True (reads :: ReadS Int) "()"
+readParens True (reads :: ReadS Int) "((1))"
+readParens True (reads :: ReadS Int) "(((1)))"
+```
+
+**IMPORTANT NOTE:** `readParen` has what is perhaps counter-intuitive
+behavior in that it will parse nested parentheses and return multiple
+results, the first result having only matched the outer-most
+parentheses. Therefore it is necessary to ensure the `readParen`
+function only returns a list of zero or one results. Use the
+`Prelude.take` function to accomplish this.
+
+Furthermore `readParen` will automatically remove whitespaces inside
 of the parentheses for you, so there is no need to use `dropWS`.
 
 Write a function called `parseParen` which uses `readParen`, and use
@@ -583,8 +599,6 @@ are correct:
 
 * `parseCalc "((( 123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
-
-
 
 ### 3.10. Writing a general testing function
 If you followed the recommendation at the start of this section, you
