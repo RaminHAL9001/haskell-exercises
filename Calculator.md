@@ -550,14 +550,30 @@ are correct:
 Now we want to be able to parse nested parentheses. Make use of the
 `parseChoice` function to chose between parsing an expression with
 parentheses and an expression without parentheses. Write a function
-called `parseExpr`. The type of `parseExpr` should be:
+called `parseCalc`. The type of `parseCalc` should be:
 
 ``` haskell
 parseExpr :: ReadS CalcAST
 ```
 
+You will need to make use of the `parseChoice` function we defined in
+exercise 3.4. You will also need to modify `parseParen` to perform a
+mututally recursive function call to `parseExpr`.
+
+**IMPORTANT NOTE:** the `reads` parser which is used by `parseLiteral`
+will parse it's own parentheses, so you will need to **also** modify
+the `parseLiteral` function so that it rejects strings (returns an
+empty list for input strings) that begin with parentheses or white
+spaces. This will prevent `reads` from removing parentheses and giving
+our own `parseParen` function defined in exercise 3.8 a chance to
+parse the parentheses from the input string.
+
 Test this function on the following inputs and make sure the outputs
 are correct:
+
+* `parseCalc "abc"` should output `[(Label "abc", "")]`
+
+* `parseCalc "1618.0e-3"` should output `[(Literal 1.618, "")]`
 
 * `parseCalc "(( abc ))"` should output `[(Paren (Paren (Label "abc")),"")]`
 
@@ -567,6 +583,8 @@ are correct:
 
 * `parseCalc "((( 123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
+
+
 
 ### 3.10. Writing a general testing function
 If you followed the recommendation at the start of this section, you
