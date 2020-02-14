@@ -85,6 +85,9 @@ parseLiteral inStr = case reads inStr of
   [(num, outStr)] -> [(Literal num, outStr)]
   _               -> []
 
+parseExpr :: CalcParser CalcAST
+parseExpr = parseChoice parseLabel parseLiteral
+
 --------------------------------------------------------------------------------
 -- Tests
 
