@@ -73,16 +73,17 @@ dropWS = dropWhile isSpace
 parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
 
-parseLabel :: String -> (String, String)
-parseLabel = span isAlpha
+parseLabel :: CalcParser CalcAST
+parseLabel inStr = case oldParseLabel inStr of
+  ("" , _     ) -> []
+  (lbl, outStr) -> [(Label lbl, outStr)]
+  where
+    oldParseLabel = span isAlpha
 
 parseLiteral :: CalcParser CalcAST
 parseLiteral inStr = case reads inStr of
   [(num, outStr)] -> [(Literal num, outStr)]
   _               -> []
-
-parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
-parseChoice a b inStr = a inStr ++ b inStr
 
 --------------------------------------------------------------------------------
 -- Tests
