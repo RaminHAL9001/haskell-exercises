@@ -12,5 +12,21 @@ data CalcAST
   | Paren    CalcAST
   deriving (Eq, Read, Show)
 
+type ErrorMessage = String
+
+calcEval :: CalcAST -> Either ErrorMessage CalcNumber
+calcEval expr = case expr of
+  Literal         lit  -> Right lit
+  Label           "pi" -> Right pi
+  Label           sym  -> Left ("unknown symbol " ++ show sym)
+
+testExpressions :: [CalcAST]
+testExpressions =
+    [ Literal 1.618
+    , Label "pi"
+    , Label "Nami's Cosmological Constant"
+    ]
+
 main :: IO ()
-main = return ()
+main = mapM_ print
+    (fmap (\ test -> (test, calcEval test)) testExpressions)
