@@ -650,6 +650,11 @@ Test this parser on the following inputs:
   [((Infix '*' (Literal 4.0) (Infix '-' (literal 3.0) (Infix '+' (Literal 2.0) (Literal 1.0)))),"")]
   ```
 
+**Hint:** use the `getArithmetic` function to check if a character is
+an acceptable infix operator. You will not need to use the function
+returned by `getArithmetic` as we do in the evaluator, just check if
+it returns `Right` or `Left`.
+
 ### 3.11. Create a primitive parser `parseChar`, rewrite `parseInfix`
 You may have written the `parseInfix` function above to inspect the
 character at the front of the string according to whether that
