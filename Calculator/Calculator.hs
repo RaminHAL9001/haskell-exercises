@@ -92,12 +92,26 @@ parseExpr :: CalcParser CalcAST
 parseExpr = parseChoice parseLabel parseLiteral
 
 parseParen :: CalcParser CalcAST
-parseParen inStr = case take 1 (readParen True parseCalc inStr) of
+parseParen inStr = case take 1 (readParen True parseInfix inStr) of
   [(expr, outStr)] -> [(Paren expr, outStr)]
   _                -> []
 
 parseCalc :: CalcParser CalcAST
 parseCalc = parseChoice parseExpr parseParen
+
+parseInfix :: CalcParser CalcAST
+parseInfix inStr = do
+  (lhs   , inStr) <- parseCalc  inStr
+  (()    , inStr) <- dropWS     inStr
+  case inStr of
+    ""              -> [(lhs, "")] -- end of input string
+    opcode:inStr    -> case getArithmetic opcode of
+      Left{}          -> [] -- not a valid infix operator
+      Right{}         -> do
+        (()    , inStr) <- dropWS     inStr
+        (rhs   , inStr) <- parseInfix inStr
+        (()    , inStr) <- dropWS     inStr
+        [(Infix opcode lhs rhs, inStr)]
 
 --------------------------------------------------------------------------------
 -- Tests
