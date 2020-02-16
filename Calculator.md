@@ -715,14 +715,16 @@ operations:
 First lets focus on associativity, and then lets focus on operator
 precedence (a.k.a. "order of operations").
 
-#### 3.12.1. Implement an left-associative infix parser
+#### 3.12.1. Implement a left-associative infix parser
 To implement left-associativity, we will write a recursive parser with
 a stack. In Haskell, since list data structures are lazy, we can use
 them as a stack. So let's modify our `parseInfix` function to take a
-list of `CalcAST` values as an argument, this will serve as our stack.
+list of tuples as an argument, this will serve as our stack. Each
+tuple will contain a `CalcAST` value paired with the infix operator
+that is immediately to the right of the `CalcAST` value.
 
 ``` haskell
-parseInfix :: [CalcAST] -> ReadS CalcAST
+parseInfix :: [(CalcAST, Char)] -> ReadS CalcAST
 ```
 
 Lets hand-parse a simple example: `1 + 2 + 3`, which should parse to
@@ -734,32 +736,46 @@ Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)
 
 Here are the parse steps that should happen in order:
 
-1. `inStr = "1+2+3", stack = []`
+1. `inStr = "1+2*3", stack = []`
 
    `parseInfix` calls `parseCalc` which parses `'1'` from the input,
-   pushes it to the stack.
-   
-2. `inStr = "+2+3", stack = [Literal 1.0]`
+   resulting in `Literal 1.0` being stored in the left-hand side (LHS)
+   local variable. It then checks if there is an infix operator. If
+   not, the item `Literal 1.0` is returned as is. If there is an infix
+   operator, store it in the local variable `opcode` and procede to
+   the next step.
 
-    `parseInfix` parses `'+'` from the input, keeps this `'+'`
-    character in a local variable which we will call `opcode`.
+2. `lhs = Literal 1.0, opcode = '+'`
 
-3. `inStr = "2+3", stack = [Literal 1.0]`
+   We now have an expression `Literal 1.0` as the LHS value, and the
+   `'+'` character as the op-code. Now manipulate the stack. If the
+   stack is empty, push the current LHS value and the current op-code
+   onto the stack and recursively call `parseInfix`.
 
-    `parseInfix` calls `parseCalc` which parses `'2'` from the input,
-    pushes it to the stack.
+   `inStr = "2*3", stack = [(Literal 1.0, '+')]`
 
-4. `inStr = "+3", stack = [Literal 1.0, Literal 2.0]`
+3. `parseInfix` calls `parseCalc` again, `parseCalc` returns a value
+   of `Literal 2.0` as the LHS expression. Then the next op-code `'*'`
+   is parsed.
 
-    `parseInfix` pops the last two elements off of the stack, and uses
-    the `opcode` local variable to construct an expression
-    `Infix '+' (Literal 1.0) (Literal 2.0)`. This expression is then
-    pushed onto the stack.
+   `lhs = Literal 2.0, opcode = '*'`
 
-5. `inStr = "+3", stack = [Infix '+' (Literal 1.0) (Literal 2.0)]`
+   Now there is an (element, op-code) pair on the stack, the stack is
+   manipulated so that the `Literal 2.0` is associated towards the
+   left.
 
-    Now `parseInfix` function checks if `inStr` is empty. If it is
-    empty, return the top of the stack, otherwise recurse to step 2.
+   `inStr = "3", stack = [(Infix '+' (Literal 1.0) (Literal 2.0), '*')]`
+
+4. `parseInfix` calls `parseCalc` again and `Literal 3.0` is returned
+   as the LHS value.
+
+   `inStr = ""`
+
+   This time the op-code parser fails. The final LHS value is used
+   with the item on the stack to construct one more `Infix` value,
+   then this `Infix` value is returned as the result of the parse.
+
+   `[Infix '*' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)]`
 
 Test the new `parseInfix` function with the input string
 `"1 + 2 + 3 + 4"`, you should get the result:
@@ -768,10 +784,17 @@ Test the new `parseInfix` function with the input string
 Infix '+' (Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)) (Literal 4.0)
 ```
 
+Also test the new `parseInfix` function along with some parentheses in
+the input string `"1 + (2 + 3 + 4)"`, you should get the result:
+
+``` haskell
+Infix '+' (Paren (Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)) (Literal 4.0))
+```
+
 #### 3.12.2. A stack from function composition `(.)` and partial function application
-In exercise 3.12.1 we use a list as our stack data structure. But a
-chain of function compositions can also act as a stack data
-structure. Take this expression as an example:
+In exercise 3.12.1 we use a list of tuples as our stack data
+structure. But a chain of function compositions can also act as a
+stack data structure. Take this expression as an example:
 
 ``` haskell
 let add = (+) :: Int -> Int -> Int
