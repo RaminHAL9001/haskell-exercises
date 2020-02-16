@@ -97,27 +97,30 @@ parseExpr :: CalcParser CalcAST
 parseExpr = parseChoice parseLabel parseLiteral
 
 parseParen :: CalcParser CalcAST
-parseParen inStr = case take 1 (readParen True parseInfix inStr) of
+parseParen inStr = case take 1 (readParen True (parseInfix []) inStr) of
   [(expr, outStr)] -> [(Paren expr, outStr)]
   _                -> []
 
 parseCalc :: CalcParser CalcAST
 parseCalc = parseChoice parseExpr parseParen
 
-parseInfix :: CalcParser CalcAST
-parseInfix inStr = do
-  (lhs   , inStr) <- parseCalc  inStr
-  (()    , inStr) <- dropWS     inStr
+parseInfix :: [(CalcAST, Char)] -> CalcParser CalcAST
+parseInfix stack inStr = do
+  (lhs, inStr) <- parseCalc inStr
+  (() , inStr) <- dropWS    inStr
+  (lhs, stack) <- case stack of
+    []                 -> [(lhs, stack)]
+    (llhs, op) : stack -> [(Infix op llhs lhs, stack)]
   let okChar c = case getArithmetic c of
         Right{} -> True
         Left{}  -> False
   case parseChar okChar inStr of
     [(opcode, inStr)] -> do
-      (()    , inStr)   <- dropWS     inStr
-      (rhs   , inStr)   <- parseInfix inStr
-      (()    , inStr)   <- dropWS     inStr
-      [(Infix opcode lhs rhs, inStr)]
-    _                 -> [(lhs, "")] -- end of input string
+      (() , inStr) <- dropWS inStr
+      (rhs, inStr) <- parseInfix ((lhs, opcode) : stack) inStr
+      (() , inStr) <- dropWS inStr
+      [(rhs, inStr)]
+    _                 -> [(lhs, inStr)]
 
 --------------------------------------------------------------------------------
 -- Tests
