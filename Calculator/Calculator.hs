@@ -73,6 +73,11 @@ dropWS inStr = [((), dropWhile isSpace inStr)]
 parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
 
+parseChar :: (Char -> Bool) -> CalcParser Char
+parseChar okChar inStr = case inStr of
+  ""      -> []
+  c:inStr -> if okChar c then [(c, inStr)] else []
+
 parseLabel :: CalcParser CalcAST
 parseLabel inStr = case oldParseLabel inStr of
   ("" , _     ) -> []
@@ -103,15 +108,16 @@ parseInfix :: CalcParser CalcAST
 parseInfix inStr = do
   (lhs   , inStr) <- parseCalc  inStr
   (()    , inStr) <- dropWS     inStr
-  case inStr of
-    ""              -> [(lhs, "")] -- end of input string
-    opcode:inStr    -> case getArithmetic opcode of
-      Left{}          -> [] -- not a valid infix operator
-      Right{}         -> do
-        (()    , inStr) <- dropWS     inStr
-        (rhs   , inStr) <- parseInfix inStr
-        (()    , inStr) <- dropWS     inStr
-        [(Infix opcode lhs rhs, inStr)]
+  let okChar c = case getArithmetic c of
+        Right{} -> True
+        Left{}  -> False
+  case parseChar okChar inStr of
+    [(opcode, inStr)] -> do
+      (()    , inStr)   <- dropWS     inStr
+      (rhs   , inStr)   <- parseInfix inStr
+      (()    , inStr)   <- dropWS     inStr
+      [(Infix opcode lhs rhs, inStr)]
+    _                 -> [(lhs, "")] -- end of input string
 
 --------------------------------------------------------------------------------
 -- Tests
