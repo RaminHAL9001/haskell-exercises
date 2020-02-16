@@ -393,8 +393,7 @@ on the type of the expression where it is used.
    constructor. `reads` will return an empty list if the input string
    does not match the parser. The type of `parseLiteral` should be:
    
-   ``` haskell
-   parseLiteral :: String -> [(CalcAST, String)]
+   ``` haskell   parseLiteral :: String -> [(CalcAST, String)]
    ```
    
 Test this function on the following inputs and make sure the utputs
@@ -600,17 +599,414 @@ are correct:
 * `parseCalc "(((123))" `should output `[]`, this should fail because
   there are not enough closing parenthesis.
 
-### 3.10. Writing a general testing function
-If you followed the recommendation at the start of this section, you
-have been using the REPL to test your functions up until now. Let's
-automate the test process now, and create a general test function for
-testing the parser. Copy and paste this code into `Calculator.hs`,
-adding new tests to the `main` function you wrote in exercise 1.
+### 3.10. Writing an infix operator parser with `do` notation
+As we have learned already in exercise 2.2, any monadic function type
+can be used with `do` notation. In exercise 2.2, we use an `Either`
+function type with `do` notation.
+
+But in Haskell, lists are monadic function types as well. Recall the
+type of `ReadS` is:
 
 ``` haskell
--- This function uses code that we defined in exercise 2.5
+type ReadS a = String -> [(a, String)]
+```
+
+What this means is, for any parser `p :: ReadS a`, if we write an
+expression in which we apply an input string `inStr` to a parser `p`,
+the type this parsing expression becomes `(p inStr :: [(a, String)])`,
+which is a list, and therefore a monad, and therefore can be used with
+`do` notation.
+
+Create a function called `parseInfix`. Use the `parseCalc` function we
+wrote in exercise 3.9, and the `dropWS` function we rewrote as a
+`ReadS` parser in exercise 3.6 to create a parser for the 'Infix'
+constructor of the `CalcAST` data type. The `parseInfix` function
+should parse any valid infix operator (any of `'+'`, `'-'`, `'*'`, or
+`'/'`).
+
+**Do not worry** about mathematical operator precedence. In
+mathematics, `3 + 2 * 1` should be equal to `3 + (2 * 1)` according to
+the standard order of operations. However for this exercise,
+`3 + 2 * 1` need not be any different from `(3 + 2) * 1`. It will be
+much easier for the moment to treat all operators as the same fixity
+precedence.
+
+**Do not worry** about associativty yet either. In mathematics,
+`4 + 3 + 2 + 1` should technically be equal to `((4 + 3) + 2) + 1`, but
+it is OK for the purpose of this exercise for the expression to be
+parsed to `4 + (3 + (2 + 1))`.
+
+The type of our infix parser should be:
+
+``` haskell
+parseInfix :: ReadS CalcAST
+```
+
+Test this parser on the following inputs:
+
+* `"4 * 3 - 2 + 1"` should return:
+
+  ```
+  [((Infix '*' (Literal 4.0) (Infix '-' (literal 3.0) (Infix '+' (Literal 2.0) (Literal 1.0)))),"")]
+  ```
+
+### 3.11. Create a primitive parser `parseChar`, rewrite `parseInfix`
+You may have written the `parseInfix` function above to inspect the
+character at the front of the string according to whether that
+character was an infix operator. Lets extract the logic of the portion
+of the parser that inspects the character into it's own function. Call
+this function `parseChar`, it should have the type:
+
+``` haskell
+parseChar :: (Char -> Bool) -> ReadS Char
+```
+
+This function should take a predicate `(Char -> Bool)` and if the
+character at the head of the input string matches the predicate, that
+character should be removed from the output string and returned. If
+the predicate does not match the head of the input string, return an
+empty list.
+
+Finally, rewrite `parseInfix` to use your new `parseChar` function. Be
+sure to test your function with the same input and the same output as
+in exercise 3.10.
+
+### 3.12. Making use of the stack to implement precedence and associativity
+As we learned in exercise 3.10, our simple `infixParser` does not
+honor the standard operator precedence or associativity (unless, of
+course, you figured out how to parse with precedence and associativity
+before arriving at this exercise).
+
+For example, our parser will always parse infix operators expressions,
+regardless of the standard mathematical order of operations. So
+`5 + 4 - 3 * 2 / 1` will parse the same way as `5 / 4 * 3 - 2 + 1`,
+will parse the same way as, `5 + 4 + 3 + 2 + 1`:
+
+* 5 + (4 - (3 * (2 / 1)))
+* 5 / (4 * (3 - (2 + 1)))
+* 5 + (4 + (3 + (2 + 1)))
+
+The way the parentheses bunch-up towards the right is called "right
+associativity." Some operators, such as the power operator is right
+associative (2^2^2 is equal to 2^(2^2)). However all other infix
+operators are left associative, so we need to correct our parser.
+
+What we want is to follow the standard mathematical order of
+operations:
+
+* `5 + 4 - 3 * 2 / 1` = `(5 + 4) - ((3 * 2) / 1)`
+* `5 / 4 * 3 - 2 + 1` = `(((5 / 4) * 3) - 2) + 1`
+* `5 + 4 + 3 + 2 + 1` = `(((5 + 4) + 3) + 2) + 1`
+
+First lets focus on associativity, and then lets focus on operator
+precedence (a.k.a. "order of operations").
+
+#### 3.12.1. Implement an left-associative infix parser
+To implement left-associativity, we will write a recursive parser with
+a stack. In Haskell, since list data structures are lazy, we can use
+them as a stack. So let's modify our `parseInfix` function to take a
+list of `CalcAST` values as an argument, this will serve as our stack.
+
+``` haskell
+parseInfix :: [CalcAST] -> ReadS CalcAST
+```
+
+Lets hand-parse a simple example: `1 + 2 + 3`, which should parse to
+an expression equivalent to:
+
+``` haskell
+Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)
+```
+
+Here are the parse steps that should happen in order:
+
+1. `inStr = "1+2+3", stack = []`
+
+   `parseInfix` calls `parseCalc` which parses `'1'` from the input,
+   pushes it to the stack.
+   
+2. `inStr = "+2+3", stack = [Literal 1.0]`
+
+    `parseInfix` parses `'+'` from the input, keeps this `'+'`
+    character in a local variable which we will call `opcode`.
+
+3. `inStr = "2+3", stack = [Literal 1.0]`
+
+    `parseInfix` calls `parseCalc` which parses `'2'` from the input,
+    pushes it to the stack.
+
+4. `inStr = "+3", stack = [Literal 1.0, Literal 2.0]`
+
+    `parseInfix` pops the last two elements off of the stack, and uses
+    the `opcode` local variable to construct an expression
+    `Infix '+' (Literal 1.0) (Literal 2.0)`. This expression is then
+    pushed onto the stack.
+
+5. `inStr = "+3", stack = [Infix '+' (Literal 1.0) (Literal 2.0)]`
+
+    Now `parseInfix` function checks if `inStr` is empty. If it is
+    empty, return the top of the stack, otherwise recurse to step 2.
+
+Test the new `parseInfix` function with the input string
+`"1 + 2 + 3 + 4"`, you should get the result:
+
+``` haskell
+Infix '+' (Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)) (Literal 4.0)
+```
+
+#### 3.12.2. A stack from function composition `(.)` and partial function application
+In exercise 3.12.1 we use a list as our stack data structure. But a
+chain of function compositions can also act as a stack data
+structure. Take this expression as an example:
+
+``` haskell
+let add = (+) :: Int -> Int -> Int
+let mul = (*) :: Int -> Int -> Int
+let stack = (mul 1) . (mul 2). (add 3) . (add 4) . (add 5) :: (Int -> Int)
+(stack 0) -- execute stack with initial value 0
+```
+
+In the above example, we define functions `add` and `mul` which both
+take two `Int` arguments. When we define `stack`, we chain a series of
+`add` or `mul` expressions together. Each `add` or `mul` expression
+contains only 1 argument, so the Haskell runtim will allocate a lambda
+data structure that would look something like this: `(\ x -> 5 +
+x)`.
+
+Notice that the lambda contains both essential pieces of information:
+the `5` opreand and the `+` operator. So the lambda here is acting as
+a sort of opaque tuple data structure (a tuple on which you cannot do
+pattern matching). Our stack is formed by the composition operator
+`(.)` which itself is a lambda containing it's left and right-hand
+function arguments in it's own tuple-like structure.
+
+Haskellers have a name for this technique of using partial function
+application to store information in lambdas, and to use a chain of
+function composition operators as a stack: it is is called an
+**"endofunctor"**, named after a similar concept from the mathematics
+of category theory.
+
+Let's create a type synonym `Endo a`:
+
+``` haskell
+type Endo a = (a -> a)
+```
+
+The data type `Endo` has the very important property that if
+`f :: Endo a` and `g :: Endo a` then `(f . g) :: Endo a`, and also
+`(g . f) :: Endo a`. The function `id` is the "empty" endofunctor,
+analogous to the empty list `[]`.
+
+So the integer arithmetic stack in the above example `mul 1 . mul 2
+. add 3 . add 4 . add 5` would be of type `Endo Int`.
+
+Are there any data types in our program that we could use as a type of
+`Endo`? What about the `Infix` constructor? **YES!** We can do a
+partial function application with a character value `Char`, for
+example `('+' :: Char)` and another `CalcAST` expression, for example
+`(Literal 1.0)`, and partially applied this to the first two fields of
+the `Infix` data structure, resulting in a type of:
+
+``` Haskell
+let stack = (Infix '+' (Literal 1.0)) :: Endo CalcAST
+```
+
+In exercise 3.12.1 we rewrote our `parseInfix` function to take a list
+of `CalcAST` values as an argument. Lets rewrite `parseInfix` again,
+this time taking an `Endo CalcAST` as an argument instead of a
+list. Build and run the parser with the same test that we used for
+exercise 3.12.1.
+
+**HINT:** when you test your remember to use `id` instead of an empty
+list to run the function.
+
+#### 3.12.3. Respecting the operator precedence (order of operations)
+The final change we need to make to our `parseInfix` function is for
+it to respect the order of operations, that is to say, the
+multiplication operator needs to bind "more stronglyq" than the addition
+operator. To do this, we simply include one more argument to the
+`parseInfix` function -- an argument `prec` of type `Int`:
+
+``` haskell
+oarseInfix :: Endo CalcAST -> Int -> ReadS CalcAST
+```
+
+We then change the logic of `parseInfix` to check the precedence of an
+operator before parsing the next operand. The logic is fairly simple:
+
+* a parser greedily parses as many operators as it can as long as each
+  next operator has the same precedence as the one before it.
+
+* If the next operand has a higher prescedence than the current
+  operator, a `parseInfix` is called with a higher precedence level
+  and a new stack containing only the current operand and
+  operator. The result of this recursive call is then treated as a
+  single operand and placed back onto the stack.
+
+* If the next operand has a lower prescedence than the current
+  operator, the parser should place the current operand onto the
+  stack, then return the stack. This will end the current call to
+  `parseInfix` for that precedence level, and return to the function
+  context of the lower precedence level which called it.
+
+Here is an illustration. Imagine we are parsing the string
+`"1+2+3*4*5+6+7-8"`, what would the calling context (local variables)
+of the `parseInfix` function look like at each step of the parse.
+
+1. Our initial function call to `parseInfix` has this context:
+
+   ``` haskell
+   prec=0
+   inStr="1+2+3*4*5+6+7-8"
+   stack=id
+   ```
+
+   First we parse `"1"` and store it in a local variable `lhs`
+   ("left-hand side"). Then we try to parse an infix operator. If
+   there is no infix operator, we simply return the value of
+   `lhs`. But since the `'+'` operators is next and it has a higher
+   precedence than 0, so we call `parseInfix` with a new stack
+   containing the value of `lhs` and the value of `'+'`.
+
+2. Now the context of `parseInfix` is this
+
+   ``` haskell
+   prec=1
+   inStr="1+2+3*4*5+6+7-8"
+   stack=(Infix '+' (Literal 1))
+   ```
+
+   `parseInfix` will parse until the first multiplication sign, the
+   first operator with a precedence not equal to 1.
+
+3. We have a `lhs` value and an operator with a higher prescedence
+   than what we had before:
+
+   ``` haskell
+   prec=1
+   inStr="4*5+6+7-8"
+   stack=(Infix '+' (Infix '+' (Literal 1.0)) (Literal 2.0))
+   lhs=Literal 3
+   opcode='*'
+   opcodPrec=2 -- is greater than prec=1
+   ```
+
+   Now we need to make a recursive call to `parseInfix` with a new
+   stack and a new precedence value. But we will return to this
+   calling context when all the multiplication signs have been parsed.
+
+4. This begins the `parseInfix` function that was called by the calling
+   context in step 3. The execution context of this function is:
+
+   ``` haskell
+   prec=2
+   inStr="4*5+6+7-8"
+   stack=(Infix '*' (Literal 3.0))
+   ```
+
+   We will continue this way until we get to the next `'+'`
+   character, the first operator in the remaining input with a
+   prescedence not equal to 2.
+
+5. All of the multiplication operators have been parsed. We now need
+   to return the value on the stack:
+
+   ``` haskell
+   prec=2
+   inStr="4*5+6+7-8"
+   stack=(Infix '*' (Infix '*' (Literal 3.0) (Literal 4.0)) (Literal 5.0))
+   ```
+
+   The value of the `stack` is returned and will become the value
+   stored in the `lhs` local variable.
+
+6. We are now back in the function context from step 3 above, but
+   after the recursive call to `parseInfix`.
+
+   ``` haskell
+   prec=1
+   inStr="4*5+6+7-8"
+   stack=(Infix '+' (Infix '+' (Literal 1.0)) (Literal 2.0))
+   lhs=(Infix '*' (Infix '*' (Literal 3.0) (Literal 4.0)) (Literal 5.0))
+   opcode='+'
+   opcodPrec=1
+   ```
+
+7. Parse infix now parses to the end of the string and returns the value on the stack.
+
+   ``` haskell
+   prec=1
+   inStr=""
+   stack=(Infix '-' (Infix '+' (Infix '+' (Infix '+' (Infix '+' (Infix '+' (Literal 1.0)) (Literal 2.0)) (Infix '*' (Infix '*' (Literal 3.0) (Literal 4.0)) (Literal 5.0))) (Literal 6.0)) (Literal 7.0)) (Literal 8.0))
+   ```
+
+8. We are now at the top-most calling context with the `prec` value at
+   zero. There are no more operators on the `inStr`, so the next call
+   to `parseChar` returns an empty list, so we return the value of
+   `lhs` as it is.
+
+See if you can rewrite `parseInfix` to behave like that.
+
+### 3.13. Use the parser and the evaluator together.
+We now have three necessary components for a programming language:
+
+1. an AST, which we defined in exercise 1,
+2. an evaluator, which we defined in exercise 2, and
+3. a parser, which we defined in exercise 3.
+
+Although most computer programming languages have many more than just
+3 components to them (e.g. linting, macro expansion, type checking,
+optimization, instrumentation, object code emission), all computer
+programming languages have, at the very least, these three components
+that we have just built in the preceeding exercises.
+
+The AST is common to both the evaluator and the parser, so the final
+step in building our miniature programming languge is to take the
+output of the parser function `parseCalc`, and feed it as input to the
+evaluator function `calcEval`. Create a new function `calcEvalString`
+and use it to parse and evaluate an input string. The type should be:
+
+``` haskell
+calcEvalString :: String -> Evaluate Double
+```
+
+This function should return `Left` with an error message if the parser
+did not parse all of the input string.
+
+### 3.14. Writing a general testing function
+Lets update our `main` function in `Calculator.hs` to include parsing
+tests. All the parsing tests that were given in exercise section 3 are
+written below.
+
+The `main` program will be changed such that now, when you
+`Calculator` from the command line, if the tests pass, the program
+will pause and wait for you to input a string. The string will be
+evaluated by `calcEvalString`, allowing you to test your program with
+any input you like. Type "quit" or "exit" to stop the program.
+
+``` haskell
+-- This function uses code that we defined in exercise 2.5. Write this
+-- just above the 'main' function.
+
 parseTest :: (Eq a, Show a) => ReadS a -> [(String, [(a, String)])] -> IO ()
 parseTest = testCase
+
+-- | This function enters into an REPL for your calculator program.
+calcREPL :: IO ()
+calcREPL = do
+    putStr "calc> "
+    inStr <- dropWhile isSpace `fmap` getLine
+    (   if      inStr == "quit" || inStr == "exit" then return ()
+        else if inStr == "" then calcREPL -- (Quietly skip empty lines.)
+        else do
+            case calcEvalString line of
+                Right result -> putStrLn (show result)
+                Left  err    -> putStrLn ("(Error: " ++ err ++ ")")
+            calcREPL
+    )
+
+-- This new 'main' function is similar to the old. You can delete the old
+-- 'main' and replace it with the one here.
 
 main :: IO ()
 main = do
@@ -679,8 +1075,31 @@ main = do
         , ("((123))", ok (Paren (Paren (Literal 123.0)),""))
         , ("((123)))", ok (Paren (Paren (Literal 123.0)),")"))
         , ("(((123))", nope)
+        , ( "1 + 2 + 3 * 4 * 5 + 6 + 7 - 8"
+          , ok (Infix '-'
+                 ( Infix '+'
+                   ( Infix '+'
+                     ( Infix '+'
+                       ( Infix '+'
+                         ( Infix '+' (Literal 1.0)) (Literal 2.0)
+                       )
+                       (Infix '*' (Infix '*' (Literal 3.0) (Literal 4.0)) (Literal 5.0))
+                     )
+                     (Literal 6.0))
+                   (Literal 7.0))
+                 (Literal 8.0)
+               )
+           )
+        , ( "(1 + 2) * 3"
+          , ok (Infix '*' (Paren (Infix '+' (Literal 1.0) (Literal 2.0))) (Literal 3.0))
+          )
+        , ( "1 + (2 * 3)"
+          , ok (Infix '+' (Literal 1.0) (Paren (Infix '*' (Literal 2.0) (Literal 3.0))))
+          )
         ]
     putStrLn "All parser tests passed."
+    ---------------
+    calcREPL
 ```
 
 ## 4. Handling parser errors
