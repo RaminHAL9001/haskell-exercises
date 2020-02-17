@@ -717,21 +717,21 @@ precedence (a.k.a. "order of operations").
 
 #### 3.12.1. Implement a left-associative infix parser
 To implement left-associativity, we will write a recursive parser with
-a stack. In Haskell, since list data structures are lazy, we can use
-them as a stack. So let's modify our `parseInfix` function to take a
-list of tuples as an argument, this will serve as our stack. Each
-tuple will contain a `CalcAST` value paired with the infix operator
-that is immediately to the right of the `CalcAST` value.
+a stack. In Haskell we can use ordinarly list data structures as a
+stack, so let's modify our `parseInfix` function to take a list of
+tuples as an argument to serve as our stack. Each tuple will contain a
+`CalcAST` value paired with the infix operator that is immediately to
+the right of the `CalcAST` value.
 
 ``` haskell
 parseInfix :: [(CalcAST, Char)] -> ReadS CalcAST
 ```
 
-Lets hand-parse a simple example: `1 + 2 + 3`, which should parse to
-an expression equivalent to:
+Lets hand-parse a simple example: `1+2*3`, which should parse to an
+expression equivalent to:
 
 ``` haskell
-Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)
+Infix '*' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)
 ```
 
 Here are the parse steps that should happen in order:
@@ -739,18 +739,21 @@ Here are the parse steps that should happen in order:
 1. `inStr = "1+2*3", stack = []`
 
    `parseInfix` calls `parseCalc` which parses `'1'` from the input,
-   resulting in `Literal 1.0` being stored in the left-hand side (LHS)
+   resulting in `Literal 1.0` being stored in a left-hand side (LHS)
    local variable. It then checks if there is an infix operator. If
    not, the item `Literal 1.0` is returned as is. If there is an infix
    operator, store it in the local variable `opcode` and procede to
    the next step.
 
-2. `lhs = Literal 1.0, opcode = '+'`
+   `lhs = Literal 1.0, opcode = '+'`
 
-   We now have an expression `Literal 1.0` as the LHS value, and the
-   `'+'` character as the op-code. Now manipulate the stack. If the
-   stack is empty, push the current LHS value and the current op-code
-   onto the stack and recursively call `parseInfix`.
+2. We now have an expression `Literal 1.0` as the LHS value, and the
+   `'+'` character as the op-code. Now manipulate the stack: if there
+   were items on the stack, the current LHS value becomes the
+   right-hand value for the previous infix operator. In this example
+   the stack is empty at this point, so instead we push the current
+   LHS value and the current op-code onto the stack and recursively
+   call `parseInfix`.
 
    `inStr = "2*3", stack = [(Literal 1.0, '+')]`
 
@@ -760,9 +763,13 @@ Here are the parse steps that should happen in order:
 
    `lhs = Literal 2.0, opcode = '*'`
 
-   Now there is an (element, op-code) pair on the stack, the stack is
-   manipulated so that the `Literal 2.0` is associated towards the
-   left.
+   At this point, there is already an (element, op-code) pair on the
+   stack, the stack is manipulated so that the current LHS value
+   `Literal 2.0` is used together with the item (`Literal 1.0`) and
+   op-code (`'+'`) on the stack to construct a new `Infix` value of
+   our `CalcAST` data structure. This newly constructed `Infix` value
+   is then pushed onto the stack with the currently parsed opcode
+   (`'*'`).
 
    `inStr = "3", stack = [(Infix '+' (Literal 1.0) (Literal 2.0), '*')]`
 
@@ -771,9 +778,10 @@ Here are the parse steps that should happen in order:
 
    `inStr = ""`
 
-   This time the op-code parser fails. The final LHS value is used
-   with the item on the stack to construct one more `Infix` value,
-   then this `Infix` value is returned as the result of the parse.
+   This time the op-code parser fails. The current LHS value
+   `Literal 3.0` is used with the item and opcode on the stack to
+   construct one more `Infix` value, then this `Infix` value is
+   returned as the result of the parse.
 
    `[Infix '*' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0)]`
 
@@ -792,9 +800,10 @@ Infix '+' (Paren (Infix '+' (Infix '+' (Literal 1.0) (Literal 2.0)) (Literal 3.0
 ```
 
 #### 3.12.2. A stack from function composition `(.)` and partial function application
-In exercise 3.12.1 we use a list of tuples as our stack data
-structure. But a chain of function compositions can also act as a
-stack data structure. Take this expression as an example:
+In exercise 3.12.1 we use a list of tuples of type `[(CalcAST, Char)]`
+as our stack data structure. But a chain of function compositions
+using the dot `('.')` operator can also act as a stack data
+structure. Take this expression as an example:
 
 ``` haskell
 let add = (+) :: Int -> Int -> Int
@@ -806,22 +815,22 @@ let stack = (mul 1) . (mul 2). (add 3) . (add 4) . (add 5) :: (Int -> Int)
 In the above example, we define functions `add` and `mul` which both
 take two `Int` arguments. When we define `stack`, we chain a series of
 `add` or `mul` expressions together. Each `add` or `mul` expression
-contains only 1 argument, so the Haskell runtim will allocate a lambda
-data structure that would look something like this: `(\ x -> 5 +
-x)`.
+contains only 1 argument, so the Haskell runtime will evaluate the
+expression `add 5` by allocating a lambda data structure that would
+look something like this: `(\ x -> 5 + x)`, and this lambda is then
+pushed on a stack of other lambdas joined together **NOT** by a cons
+`(:)` operator as with a list, but with the dot `(.)` operator.
 
-Notice that the lambda contains both essential pieces of information:
-the `5` opreand and the `+` operator. So the lambda here is acting as
-a sort of opaque tuple data structure (a tuple on which you cannot do
-pattern matching). Our stack is formed by the composition operator
-`(.)` which itself is a lambda containing it's left and right-hand
-function arguments in it's own tuple-like structure.
+Notice that the lambda `(\ x -> 5 + x)` contains both essential pieces
+of information that our stack needs: the `5` opreand and the `+`
+operator. So the lambda here is acting as a sort of opaque tuple data
+structure (a tuple on which you cannot do pattern matching).
 
 Haskellers have a name for this technique of using partial function
 application to store information in lambdas, and to use a chain of
-function composition operators as a stack: it is is called an
-**"endofunctor"**, named after a similar concept from the mathematics
-of category theory.
+lambdas linked together in a chain with the composition `(.)`
+operator: it is is called an **"endofunctor"**, named after a similar
+concept from the mathematics of category theory.
 
 Let's create a type synonym `Endo a`:
 
@@ -845,14 +854,21 @@ example `('+' :: Char)` and another `CalcAST` expression, for example
 the `Infix` data structure, resulting in a type of:
 
 ``` Haskell
+let stack = (Infix '+' (Literal 1.0)) :: (CalcAST -> CalcAST)
+
+               -- (is synonymous with) --
+
 let stack = (Infix '+' (Literal 1.0)) :: Endo CalcAST
 ```
 
 In exercise 3.12.1 we rewrote our `parseInfix` function to take a list
-of `CalcAST` values as an argument. Lets rewrite `parseInfix` again,
-this time taking an `Endo CalcAST` as an argument instead of a
-list. Build and run the parser with the same test that we used for
-exercise 3.12.1.
+of `CalcAST` values paired with a `Char` infix operator as an
+argument. Lets rewrite `parseInfix` again, this time taking an `Endo
+CalcAST` as an argument instead of a list. Build and run the parser
+with the same test that we used for exercise 3.12.1, but this time
+instead of storing information as a stack of tuples, store it as
+compositional chain of lambdas -- partial applications to the `Infix`
+constructor.
 
 **HINT:** when you test your remember to use `id` instead of an empty
 list to run the function.
