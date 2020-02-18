@@ -486,6 +486,15 @@ which is the same type as `(String -> [(a, String)])`.
 Rewrite the functions you have written in exercises 3.3 and 3.4 above
 to use the `CalcParser` type synonym instead of the `ReadS` type.
 
+Likewise, change the type of `parseLiteral` (from exercise 3.3) from
+this:
+
+``` haskell
+parseLiteral :: String -> [(CalcAST, String)]
+```
+
+so that it is defined as a 'CalcParser' type of function.
+
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
 The `parseLabel` function we wrote in exercise 3.2 was of type:
 
@@ -497,20 +506,8 @@ But it would be easier to use this function with `parseChoice`
 (defined above in exercise 3.4) if the type of `parseLabel` were:
 
 ``` haskell
-parseLabel :: ReadS CalcAST
-
--- Recall that the type of `ReadS any` is `String -> [(any, String)]`.
+parseLabel :: CalcParser CalcAST
 ```
-
-Likewise, change the type of `parseLiteral` (from exercise 3.3) from
-this:
-
-``` haskell
-parseLiteral :: String -> [(CalcAST, String)]
-```
-
-so that it is defined as a 'ReadS' prect function.
-
 Lets rename the old `parseLabel` function to `oldParseLabel` and write
 a new function `parseLabel`. The new `parseLabel` should take the
 output of `oldParseLabel` and return an empty list if the output of
@@ -521,12 +518,12 @@ the only element of that list.
 Test our new `parseLabel` function by using it with `parseChoice`,
 test it on the following inputs and make sure the outputs are correct:
 
-#### 3.6. Rewrite `dropWS` as a `ReadS` type function
+#### 3.6. Rewrite `dropWS` as a `CalcParser` type function
 The new `dropWS` function should never fail (never return an empty
 list), and it should be of type:
 
 ``` haskell
-dropWS :: String -> ReadS ()
+dropWS :: String -> CalcParser ()
 ```
 
 It may seem unnecessary to wrap the output in a tuple with an empty
@@ -538,7 +535,7 @@ This function should use the `parseChoice` function we defined in
 exercise 3.4. The type of this function should be:
 
 ``` haskell
-parseExpr :: ReadS CalcAST
+parseExpr :: CalcParser CalcAST
 ```
 
 * `parseExpr "abc 123"` should return `[(Label "abc"," 123")]`
@@ -581,7 +578,7 @@ Write a function called `parseParen` which uses `readParen`, and use
 `parseParen` should be:
 
 ``` haskell
-parseParen :: ReadS CalcAST
+parseParen :: CalcParser CalcAST
 ```
 
 Test this function on the following inputs and make sure the outputs
@@ -607,7 +604,7 @@ parentheses and an expression without parentheses. Write a function
 called `parseCalc`. The type of `parseCalc` should be:
 
 ``` haskell
-parseExpr :: ReadS CalcAST
+parseExpr :: CalcParser CalcAST
 ```
 
 You will need to make use of the `parseChoice` function we defined in
@@ -644,10 +641,11 @@ can be used with `do` notation. In exercise 2.2, we use an `Either`
 function type with `do` notation.
 
 But in Haskell, lists are monadic function types as well. Recall the
-type of `ReadS` is:
+type of `ReadS` (which is the same type as `CalcParser`) is:
 
 ``` haskell
 type ReadS a = String -> [(a, String)]
+type CalcParser = ReadS a
 ```
 
 What this means is, for any parser `p :: ReadS a`, if we write an
@@ -678,7 +676,7 @@ parsed to `4 + (3 + (2 + 1))`.
 The type of our infix parser should be:
 
 ``` haskell
-parseInfix :: ReadS CalcAST
+parseInfix :: CalcParser CalcAST
 ```
 
 Update the `parseParen` function so that it parses an infix expression
@@ -711,7 +709,7 @@ of the parser that inspects the character into it's own function. Call
 this function `parseChar`, it should have the type:
 
 ``` haskell
-parseChar :: (Char -> Bool) -> ReadS Char
+parseChar :: (Char -> Bool) -> CalcParser Char
 ```
 
 This function should take a predicate `(Char -> Bool)` and if the
@@ -763,7 +761,7 @@ tuples as an argument to serve as our stack. Each tuple will contain a
 the right of the `CalcAST` value.
 
 ``` haskell
-parseInfix :: [(CalcAST, Char)] -> ReadS CalcAST
+parseInfix :: [(CalcAST, Char)] -> CalcParser CalcAST
 ```
 
 Lets hand-parse a simple example: `1+2*3`, which should parse to an
@@ -932,7 +930,7 @@ operator. To do this, we simply include one more argument to the
 `parseInfix` function -- an argument `prec` of type `Int`:
 
 ``` haskell
-oarseInfix :: Endo CalcAST -> Int -> ReadS CalcAST
+oarseInfix :: Endo CalcAST -> Int -> CalcParser CalcAST
 ```
 
 We then change the logic of `parseInfix` to check the precedence of an
@@ -1092,7 +1090,7 @@ any input you like. Type "quit" or "exit" to stop the program.
 -- This function uses code that we defined in exercise 2.5. Write this
 -- just above the 'main' function.
 
-parseTest :: (Eq a, Show a) => ReadS a -> [(String, [(a, String)])] -> IO ()
+parseTest :: (Eq a, Show a) => CalcParser a -> [(String, [(a, String)])] -> IO ()
 parseTest = testCase
 
 -- | This function enters into an REPL for your calculator program.
@@ -1207,7 +1205,7 @@ main = do
 ```
 
 ## 4. Handling parser errors
-Using `ReadS` is a good way to throw together a quick parser, but it
+Using `CalcParser` is a good way to throw together a quick parser, but it
 doesn't tell us very much about what went wrong. Haskell provides a
 function `Prelude.error` for throwing an exception, however this will
 bring your entire program to a crashing halt.
@@ -1233,10 +1231,11 @@ type ErrorMessage = String
 ```
 
 ### 4.1 Define a `Parser` type which uses `Either`.
-Recall that what type of `ReadS` is:
+Recall that what type of `ReadS` is (which is the same as the `CalcParser` type):
 
 ``` haskell
 type ReadS any = String -> [(any, String)]
+type CalcParser any = ReadS any
 ```
 
 Notice that the type variable `any` is used to indicate that the type
@@ -1245,10 +1244,23 @@ is `Int`, we must have parsed an integer value from the input
 string. When `any` is `(Int, String)`, we must have parsed a tuple
 containing an integer and a string.
 
-Let's create our own parser type that is similar to `ReadS`:
+Up until now, we have been using the empty list value to represent a
+failure to parse. Functions like `parseChoice` pattern match on parser
+results using the `case` statement and choose an alternative parser if
+the list is empty.
+
+But the empty list doesn't contain any information at all -- it is, of
+course, empty.
+
+So what a Haskeller should do is change the `CalcParser` type to a
+type that can carry more information in the event of a failure. We did
+a similar thing in exercise 2 when we used the `Either` type to report
+error information when the evaluator failed.
+
+Let's use the `Either` data tyoe to define our `CalcParser` now.
 
 ``` haskell
-type Parser any = ...
+type CalcParser any = ...
 ```
 
 As with `ReadS`, this parser type should be a function that always
@@ -1259,17 +1271,24 @@ the `Left` constructor is used, and evaluates to the a tuple
 containing the variable `any` type as the first tuple item, and the
 unparsed string remainder as the second tuple item.
 
-The answer to this exercise is to define is the type `Pasrer` as
-described.
+**Note:** that this exercise will make a change to the `CalcParser`
+data type that will make it impossible to compile your program. You
+will fix these compiler errors in the next exercise 4.1.1.
 
-### 4.2. Write a function that converts a `ReadS` to our own `Parser` type
+### 4.1.1. Write a function that converts a `ReadS` to our new `CalcParser` type
+Before we can build the changes we made to the `CalcParser` data type
+we need to have a way to use `ReadS` type functions within our
+`CalcParser` type functions. To do this, we need what amounts to a
+conversion function which converts an input of type `ReadS` to an
+output of type `CalcParser`.
+
 Haskellers conventionally refer to functions which convert higher
 order-functions to even *higher* higher-order functions as "lifting"
 functions. So let's call this conversion function `liftReadS`. The
 type of `liftReadS` should be:
 
 ``` haskell
-liftReadS :: ErrorMessage -> ReadS any -> Parser any
+liftReadS :: ErrorMessage -> ReadS any -> CalcParser any
 ```
 
 As you can see, `liftReadS` is a higher-order function that takes
@@ -1290,7 +1309,7 @@ The `liftReadS` function should behave like so:
   `Left` containing the error message. Prepend to the error message
   string the message `"<ambiguous parse> "`.
 
-### 4.3. Rewrite all of our `ReadS` function as the `Parser` type
+### 4.3. Rewrite all of our `ReadS` function as the `CalcParser` type
 This is going to take a bit of work.
 
 **BUT** this is one of Haskell's greatest strengths. When you make a
@@ -1304,19 +1323,19 @@ Make sure all parsing functions we have written so far have the
 following types:
 
 ``` haskell
-dropWS :: Parser () -- never fails
+dropWS :: CalcParser () -- never fails
 
-parseLiteral :: Parser CalcAST -- can use 'liftReadS' for this
+parseLiteral :: CalcParser CalcAST -- can use 'liftReadS' for this
 
-parseLabel :: Parser CalcAST
+parseLabel :: CalcParser CalcAST
 
-parseParen :: Parser CalcAST -- can use 'liftReadS' for this
+parseParen :: CalcParser CalcAST -- can use 'liftReadS' for this
 
-parseCalc :: Parser CalcAST
+parseCalc :: CalcParser CalcAST
 
-parseChoice :: Parser a -> Parser a -> Parser a
+parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 
-parseTest :: Eq a => Parser a -> [(String, Either (a, String))] -> IO ()
+parseTest :: Eq a => CalcParser a -> [(String, Either (a, String))] -> IO ()
 parseTest = testCase
     -- Only the type of this function changes.
 ```
@@ -1341,7 +1360,7 @@ probably easily be re-written without `liftReadS`. You will not be
 able to use `liftReadS` to convert `parseCalc` or `parseChoice`.
 
 ## 4.4. Write `parse1Char` and `parseManyChars` primitive parsers.
-Now that we have our own `Parser` type, lets break down some the
+Now that we have our own `CalcParser` type, lets break down some the
 parsing operations we will be doing often to their most fundamental
 "primitive" behaviors. We can then define other parsers in terms of
 these primitives. Let's begin by defining 2 new primitive functions.
@@ -1349,7 +1368,7 @@ these primitives. Let's begin by defining 2 new primitive functions.
 1. `parse1Char` must have a type of:
 
     ``` haskell
-    parse1Char :: ErrorMessage -> (Char -> Bool) -> Parser Char
+    parse1Char :: ErrorMessage -> (Char -> Bool) -> CalcParser Char
     ```
 
     This function takes a predicate function of type `(Char -> Bool)`
@@ -1361,7 +1380,7 @@ these primitives. Let's begin by defining 2 new primitive functions.
 2. `parseManyChars` must have a type of:
 
     ``` haskell
-    parseManyChars :: ErrorMessage -> (Char -> Bool) -> Parser String
+    parseManyChars :: ErrorMessage -> (Char -> Bool) -> CalcParser String
     ```
 
     This function takes a predicate of type `(Char -> Bool)` and uses
@@ -1401,7 +1420,7 @@ messages. To correct the problem, we may be tempted to write a new
 function like this:
 
 ``` haskell
-parseLiteralOrLabel :: Parser CalcAST
+parseLiteralOrLabel :: CalcParser CalcAST
 parseLiteralOrLabel inStr =
     case parseChoice parseLiteral parseLabel inStr of
         Left{}  -> Left "expecting symbol or label"
@@ -1422,11 +1441,11 @@ should always evaluate to `Left` with an empty string as the error
 message. The type of this function should be:
 
 ``` haskell
-failParse :: Parser void
+failParse :: CalcParser void
 ```
 
 (**NOTE:** the type variable named `void` above has no special
-meaning, it could also be defined as `failParse :: Parser a`. The use
+meaning, it could also be defined as `failParse :: CalcParser a`. The use
 of `void` as a variable name here simply indicates to other
 programmers that the function will always fail.)
 
@@ -1435,7 +1454,7 @@ Create a function called `expecting`. The type of this function should
 be:
 
 ``` haskell
-expecting :: ErrorMessage -> Parser any -> Parser any
+expecting :: ErrorMessage -> CalcParser any -> CalcParser any
 ```
 
 This function takes an error message and a parser function as
@@ -1453,11 +1472,11 @@ in exercise 4.4, and the `liftReadS` function in exercise
 4.2. Originally, the types of these functions were:
 
 ``` haskell
-liftReadS :: ErrorMessage -> ReadS any -> Parser any
+liftReadS :: ErrorMessage -> ReadS any -> CalcParser any
 
-parse1Char :: ErrorMessage -> (Char -> Bool) -> Parser Char
+parse1Char :: ErrorMessage -> (Char -> Bool) -> CalcParser Char
 
-parseManyChars :: ErrorMessage -> (Char -> Bool) -> Parser String
+parseManyChars :: ErrorMessage -> (Char -> Bool) -> CalcParser String
 ```
 
 Change these functions so that they no longer take an `ErrorMessage`
@@ -1467,26 +1486,26 @@ the given `ErrorMessage`.
 The new types of these functions should be:
 
 ``` haskell
-liftReadS :: ReadS any -> Parser any
+liftReadS :: ReadS any -> CalcParser any
 
-parse1Char :: (Char -> Bool) -> Parser Char
+parse1Char :: (Char -> Bool) -> CalcParser Char
 
-parseManyChars :: (Char -> Bool) -> Parser String
+parseManyChars :: (Char -> Bool) -> CalcParser String
 ```
 
 You will also need to rewrite the following functions to make use of
 `expecting`, although their function types are unchanged from before.
 
 ``` haskell
-parseLabel :: Parser CalcAST
+parseLabel :: CalcParser CalcAST
 
-parseLiteral :: Parser CalcAST
+parseLiteral :: CalcParser CalcAST
 
-parseParen :: Parser CalcAST
+parseParen :: CalcParser CalcAST
 
-parseCalc :: Parser CalcAST
+parseCalc :: CalcParser CalcAST
 ```
 
 ## 4.7. Write the `parseFunc` function for parsing "sin", "cosh", "exp", and "log"
 
-# 5. Turn `Parser` into our own custom monad
+# 5. Turn `CalcParser` into our own custom monad
