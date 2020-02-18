@@ -63,19 +63,20 @@ calcEval expr = case expr of
 --------------------------------------------------------------------------------
 -- Parsers
 
+type CalcParser a = ReadS a
+-- type ReadS a = String -> [(a, String)]
+-- reads :: Read a => ReadS a
+
 dropWS :: String -> String
 dropWS = dropWhile isSpace
 
-parseChoice :: ReadS a -> ReadS a -> ReadS a
+parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
 
 parseLabel :: String -> (String, String)
 parseLabel = span isAlpha
 
--- type ReadS a = String -> [(a, String)]
--- reads :: Read a => ReadS a
-
-parseLiteral :: String -> [(CalcAST, String)]
+parseLiteral :: CalcParser CalcAST
 parseLiteral inStr = case reads inStr of
   [(num, outStr)] -> [(Literal num, outStr)]
   _               -> []
