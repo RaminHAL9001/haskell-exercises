@@ -938,7 +938,70 @@ The `'+'` and `'-'` op-codes should have a precedence of 1, the `'*'`
 and `'/'` op-codes bind more stronlgy and should have a precedence of
 2.
 
-#### 3.12.4. Updating `parseInfix` to respect operator precedence
+#### 3.12.4. Creating primitive parsers for character look-ahead
+A precedence parser needs to parse greedily as many operators as it
+can that are of the same precedence, but back-off when it finds an
+operator of a lower precedence.
+
+In order to back-off when it finds an operator of a lower precedence
+than the current precedence context, we need a new primitive parser
+that can look ahead to the next operator and succeed without changing
+the input string of the parsre. Call this function `parseLook`, which
+should have the same type as `parseChar` but does not consume any
+character from the input string:
+
+``` haskell
+parseLook :: (Char -> Bool) -> CalcParser Char
+```
+
+Now we can use `parseLook` and then choose whether we want to continue
+parsing, or fail, or succeed, based on the next character in the input
+string without changing the input string.
+
+Likewise, in the event that we used `parseLook` parsed a char that we
+did want to use and would like to continue parsing, we will need a
+function that drops that single character off of the input
+string. Create a function `drop1Chars` that does nothing but drop a
+character from the input string. `drop1Chars` should have the type:
+
+``` haskell
+drop1Chars :: CalcParser ()
+```
+
+Finally, our function `parseChar` which we wrote in exercise 3.11 can
+be rewritten to use both `parseLook` and `drop1Chars`, so lets do that
+right now to finish this exercise.
+
+#### 3.12.5. Split `parseInfix` into a part that parser the LHS and a part that loops
+As stated in the previous exercise, the precedence parser needs to
+parse greedily as many operators as it can that are of the same
+precedence, but back-off when it finds an operator of a lower
+precedence. To implement greedy parsing, we should split the
+`parseInfix` function we first wrote in exercise 3.12.1 and rewrote in
+exercise 3.12.2, and rewrite it again as two functions:
+
+``` haskell
+parseInfix :: Endo CalcAST -> Int -> CalcParser CalcAST
+
+parseInfixLoop :: Endo CalcAST -> CalcAST -> Int -> CalcParser CalcAST
+```
+
+The `parseInfix` function should behave exactly as before, except it
+should take one additional argument `prec :: Int` (which we will
+ignore for now), and `parseInfix` should call the `parseInfixLoop`
+function as it's final computational step.
+
+The portion of the function that tries to parse the infix operator
+should have been moved into the `parseInfixLoop` function. It should
+take an argument `lhs :: CalcAST` which is received from the `lhs`
+value parsed by the `parseInfix` function. `parseInfixLoop` should
+also take a precedence argument `prec :: Int`.
+
+**Hint:** when calling `parseInfix`, it will need a default operator
+precedence value. Pass zero as the initial precedence value when using
+`parseInfix`.
+
+#### 3.12.6. Updating `parseInfixLoop` to respect operator precedence
 The final change we need to make to our `parseInfix` function is for
 it to respect the order of operations, that is to say, the
 multiplication operator needs to bind "more strongly" than the addition
