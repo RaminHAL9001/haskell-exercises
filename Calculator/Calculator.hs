@@ -67,8 +67,8 @@ type CalcParser a = ReadS a
 -- type ReadS a = String -> [(a, String)]
 -- reads :: Read a => ReadS a
 
-dropWS :: String -> String
-dropWS = dropWhile isSpace
+dropWS :: CalcParser ()
+dropWS inStr = [((), dropWhile isSpace inStr)]
 
 parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
