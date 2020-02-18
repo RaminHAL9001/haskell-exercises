@@ -844,14 +844,22 @@ The data type `Endo` has the very important property that if
 analogous to the empty list `[]`.
 
 So the integer arithmetic stack in the above example `mul 1 . mul 2
-. add 3 . add 4 . add 5` would be of type `Endo Int`.
+. add 3 . add 4 . add 5` would be of type `Endo Int`, that is to say,
+type `(Int -> Int)`.
 
 Are there any data types in our program that we could use as a type of
-`Endo`? What about the `Infix` constructor? **YES!** We can do a
-partial function application with a character value `Char`, for
-example `('+' :: Char)` and another `CalcAST` expression, for example
-`(Literal 1.0)`, and partially applied this to the first two fields of
-the `Infix` data structure, resulting in a type of:
+`Endo`? What about the `Infix` constructor? The `Infix` constructor of
+our `CalcAST` data type is:
+
+``` haskell
+Infix :: Char -> CalcAST -> CalcAST -> CalcAST
+```
+
+We can do a partial function application with a character value `Char`
+and another `CalcAST` value filling in the first two fields of
+`Infix`. For example apply `('+' :: Char)` and `(Literal 1.0 ::
+CalcAST)` as the first two parameters to the `Infix` data structure,
+resulting in a type of:
 
 ``` Haskell
 let stack = (Infix '+' (Literal 1.0)) :: (CalcAST -> CalcAST)
@@ -863,12 +871,16 @@ let stack = (Infix '+' (Literal 1.0)) :: Endo CalcAST
 
 In exercise 3.12.1 we rewrote our `parseInfix` function to take a list
 of `CalcAST` values paired with a `Char` infix operator as an
-argument. Lets rewrite `parseInfix` again, this time taking an `Endo
-CalcAST` as an argument instead of a list. Build and run the parser
-with the same test that we used for exercise 3.12.1, but this time
-instead of storing information as a stack of tuples, store it as
-compositional chain of lambdas -- partial applications to the `Infix`
-constructor.
+argument. In this exercise, lets rewrite `parseInfix` again, this time
+taking an `Endo CalcAST` as an argument instead of a list. You will
+find this to be easier as it will no longer be necessary to pattern
+match on the stack to apply parsed values as they will already be
+partially applied.
+
+Build and run the parser with the same test that we used for exercise
+3.12.1, but this time instead of storing information as a stack of
+tuples, store it as compositional chain of lambdas -- partial
+applications to the `Infix` constructor.
 
 **HINT:** when you test your remember to use `id` instead of an empty
 list to run the function.
@@ -876,7 +888,7 @@ list to run the function.
 #### 3.12.3. Respecting the operator precedence (order of operations)
 The final change we need to make to our `parseInfix` function is for
 it to respect the order of operations, that is to say, the
-multiplication operator needs to bind "more stronglyq" than the addition
+multiplication operator needs to bind "more strongly" than the addition
 operator. To do this, we simply include one more argument to the
 `parseInfix` function -- an argument `prec` of type `Int`:
 
