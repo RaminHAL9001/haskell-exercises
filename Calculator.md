@@ -68,7 +68,7 @@ Let's define a function called `calcEval`. The type of this function
 should be:
 
 ``` haskell
-calcEval :: CalcAST -> Either ErrorMessage Double
+calcEval :: CalcAST -> Either ErrorMessage CalcNumber
 
 type ErrorMessage = String
 ```
@@ -76,7 +76,7 @@ type ErrorMessage = String
 To get you started, you can begin defining `calcEval` like so:
 
 ``` haskell
-calcEval :: CalcAST -> Either ErrorMessage Double
+calcEval :: CalcAST -> Either ErrorMessage CalcNumber
 calcEval expr = case expr of
     Literal lit  -> Right lit
     Label   "pi" -> Right pi
@@ -105,11 +105,11 @@ For more information on how to do the exercises in this section, refer
 to [chapter 4 of Learn You a Haskell for Great Good](
 http://learnyouahaskell.com/chapters ).
 
-### 2.1. Write a function to convert a `String` like "pi" to a `Double` value.
+### 2.1. Write a function to convert a `CalcLabel` like "pi" to a `CalcNumber` value.
 Call this function `getConstant`, and should have this type:
 
 ``` haskell
-getConstant :: String -> Either ErrorMessage Double
+getConstant :: CalcLabel -> Either ErrorMessage CalcNumber
 ```
 
 Define this function to return a value of `Right pi` when given the
@@ -118,7 +118,7 @@ string "e", return a value of `Left` with an error message string
 "unknown symbol", append the unknown symbol in as part of the error
 message.
 
-### 2.2. Write a function to convert an operator `Char` to an arithmetic function.
+### 2.2. Write a function to convert a `CalcOpCode` to an arithmetic function.
 When writing an evaluator for the `Infix` constructor, we need to
 produce a built-in arithmetic function such as `(+)` for a character
 representing that function, such as `'+'`.
@@ -126,7 +126,7 @@ representing that function, such as `'+'`.
 Write a function `getArithmetic` which should have the function type:
 
 ``` haskell
-getArithmetic :: Char -> Either ErrorMessage (Double -> Double -> Double)
+getArithmetic :: CalcOpCode -> Either ErrorMessage (CalcNumber -> CalcNumber -> CalcNumber)
 ```
 
 This function should return a `Right` constructor containing each of
@@ -160,8 +160,8 @@ calcEval expr = case expr of
 ### 2.3. Use a type synonym to define a type of `Either ErrorMessage`
 We have already written `getConstant` in 2.1 and `getArithmetic` in
 2.2, both returning a type `Either ErrorMessage something` where
-`something` is a `Double` value or a function of type `(Double ->
-Double -> Double)`.
+`something` is a `CalcNumber` value or a function of type `(CalcNumber
+-> CalcNumber -> CalcNumber)`.
 
 We will be writting many more functions that evaluate to `Either
 ErrorMessage something`, so write a new type synonym called `Evaluate`
@@ -176,11 +176,11 @@ defined above in exercise 2.1, 2.2, and 2 (repsectively) to have the
 following type signatures:
 
 ``` haskell
-getConstant :: String -> Evaluate Double
+getConstant :: CalcLabel -> Evaluate CalcNumber
 
-getArithmetic :: Char -> Evaluate (Double -> Double -> Double)
+getArithmetic :: CalcOpCode -> Evaluate (CalcNumber -> CalcNumber -> CalcNumber)
 
-calcEval :: CalcAST Evaluate Double
+calcEval :: CalcAST Evaluate CalcNumber
 ```
 
 Refer to [chapter 8 of Learn You a Haskell for Great Good](
@@ -194,7 +194,7 @@ you are only renaming these function type, not changing their types.
 The function should be called `getFunction` and hav a type of:
 
 ``` haskell
-getFunction :: String -> Evaluate (Double -> Double)
+getFunction :: CalcLabel -> Evaluate (CalcNumber -> CalcNumber)
 ```
 
 This function should be defined for `sin`, `cos`, `tan`, `sqrt`,
@@ -217,7 +217,7 @@ Control.Applicative`. This will provide to you the (`<$>`) and (`<*>`)
 operators.
 
 ``` haskell
-calcEval :: CalcAST -> Either ErrorMessage Double
+calcEval :: CalcAST -> Evaluate Double
 calcEval expr = case expr of
     Infix opcode a b -> do
         oper <- getArithmetic opcode
@@ -470,6 +470,21 @@ why it is necessary to wrap the output of these functions in our
 
 For now, just compile this program and make sure this function type
 checks, we will test in in the upcoming exercises.
+
+#### 3.4.1. Create a type synonym for the `ReadS` data type.
+We are going to be updating our parser quite a bit over the coming
+exercises, so lets take a brief moment right now to create a type
+synonym for our parser type:
+
+``` haskell
+type CalcParser a = ReadS a
+```
+
+Just remember that `(CalcParser a)` is the same type as `(ReadS a)`
+which is the same type as `(String -> [(a, String)])`.
+
+Rewrite the functions you have written in exercises 3.3 and 3.4 above
+to use the `CalcParser` type synonym instead of the `ReadS` type.
 
 ### 3.5. Rewrite the `parseLabel` function so it can be used easily in `parseChoice`
 The `parseLabel` function we wrote in exercise 3.2 was of type:
