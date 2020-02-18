@@ -81,7 +81,7 @@ parseLiteral inStr = case reads inStr of
   [(num, outStr)] -> [(Literal num, outStr)]
   _               -> []
 
-parseChoice :: ReadS a -> ReadS a -> ReadS a
+parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
 
 --------------------------------------------------------------------------------
