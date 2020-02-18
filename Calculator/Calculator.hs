@@ -30,6 +30,22 @@ getArithmetic opcode = case opcode of
   '/' -> Right (/)
   _   -> Left ("unknown infix operator " ++ show opcode)
 
+getFunction :: CalcLabel -> Evaluate (CalcNumber -> CalcNumber)
+getFunction lbl = case lbl of
+  "sin"  -> Right sin
+  "cos"  -> Right cos
+  "tan"  -> Right tan
+  "sqrt" -> Right sqrt
+  "exp"  -> Right exp
+  "log"  -> Right log
+  "asin" -> Right asin
+  "acos" -> Right acos
+  "atan" -> Right atan
+  "sinh" -> Right sinh
+  "cosh" -> Right cosh
+  "tanh" -> Right tanh
+  _      -> Left ("unknown function " ++ show lbl)
+
 calcEval :: CalcAST -> Evaluate CalcNumber
 calcEval expr = case expr of
   Literal         lit  -> Right lit
