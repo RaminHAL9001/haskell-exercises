@@ -104,6 +104,14 @@ parseParen inStr = case take 1 (readParen True (parseInfix id) inStr) of
 parseCalc :: CalcParser CalcAST
 parseCalc = parseChoice parseExpr parseParen
 
+getOpPrecedence :: CalcOpCode -> [Int]
+getOpPrecedence opcode = case opcode of
+  '+' -> [1]
+  '-' -> [1]
+  '*' -> [2]
+  '/' -> [2]
+  _   -> []
+
 type Endo a = (a -> a)
 
 parseInfix :: Endo CalcAST -> CalcParser CalcAST
