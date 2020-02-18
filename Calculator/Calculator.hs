@@ -108,7 +108,7 @@ parseExpr :: CalcParser CalcAST
 parseExpr = parseChoice parseLabel parseLiteral
 
 parseParen :: CalcParser CalcAST
-parseParen inStr = case take 1 (readParen True (parseInfix id) inStr) of
+parseParen inStr = case take 1 (readParen True (parseInfix id 0) inStr) of
   [(expr, outStr)] -> [(Paren expr, outStr)]
   _                -> []
 
@@ -125,17 +125,21 @@ getOpPrecedence opcode = case opcode of
 
 type Endo a = (a -> a)
 
-parseInfix :: Endo CalcAST -> CalcParser CalcAST
-parseInfix stack inStr = do
+parseInfix :: Endo CalcAST -> Int -> CalcParser CalcAST
+parseInfix stack prec inStr = do
   (lhs, inStr) <- parseCalc inStr
   (() , inStr) <- dropWS    inStr
+  parseInfixLoop stack lhs prec inStr
+
+parseInfixLoop :: Endo CalcAST -> CalcAST -> Int -> CalcParser CalcAST
+parseInfixLoop stack lhs prec inStr = do
   let okChar c = case getArithmetic c of
         Right{} -> True
         Left{}  -> False
   case parseChar okChar inStr of
     [(opcode, inStr)] -> do
       (() , inStr) <- dropWS inStr
-      (rhs, inStr) <- parseInfix (Infix opcode (stack lhs)) inStr
+      (rhs, inStr) <- parseInfix (Infix opcode (stack lhs)) prec inStr
       (() , inStr) <- dropWS inStr
       [(rhs, inStr)]
     _                 -> [(stack lhs, inStr)]
