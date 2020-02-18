@@ -136,12 +136,22 @@ parseInfixLoop stack lhs prec inStr = do
   let okChar c = case getArithmetic c of
         Right{} -> True
         Left{}  -> False
-  case parseChar okChar inStr of
+  case parseLook okChar inStr of
     [(opcode, inStr)] -> do
-      (() , inStr) <- dropWS inStr
-      (rhs, inStr) <- parseInfix (Infix opcode (stack lhs)) prec inStr
-      (() , inStr) <- dropWS inStr
-      [(rhs, inStr)]
+      newPrec <- getOpPrecedence opcode
+      if newPrec == prec then do
+          (() , inStr) <- drop1Chars inStr
+          (() , inStr) <- dropWS inStr
+          (rhs, inStr) <- parseInfix (Infix opcode (stack lhs)) newPrec inStr
+          (() , inStr) <- dropWS inStr
+          [(rhs, inStr)]
+        else if newPrec > prec then do
+          (() , inStr) <- drop1Chars inStr
+          (() , inStr) <- dropWS inStr
+          (lhs, inStr) <- parseInfix (Infix opcode lhs) newPrec inStr
+          parseInfixLoop stack lhs prec inStr
+        else do
+          [(stack lhs, inStr)]
     _                 -> [(stack lhs, inStr)]
 
 --------------------------------------------------------------------------------
