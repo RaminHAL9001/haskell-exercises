@@ -73,10 +73,21 @@ dropWS inStr = [((), dropWhile isSpace inStr)]
 parseChoice :: CalcParser a -> CalcParser a -> CalcParser a
 parseChoice a b inStr = a inStr ++ b inStr
 
+parseLook :: (Char -> Bool) -> CalcParser Char
+parseLook okChar inStr = case inStr of
+  c:_ | okChar c -> [(c, inStr)]
+  _              -> []
+
+drop1Chars :: CalcParser ()
+drop1Chars inStr = case inStr of
+  _:inStr -> [((), inStr)]
+  _       -> []
+
 parseChar :: (Char -> Bool) -> CalcParser Char
-parseChar okChar inStr = case inStr of
-  ""      -> []
-  c:inStr -> if okChar c then [(c, inStr)] else []
+parseChar okChar inStr = do
+  (c,  inStr) <- parseLook okChar inStr
+  ((), inStr) <- drop1Chars inStr
+  [(c, inStr)]
 
 parseLabel :: CalcParser CalcAST
 parseLabel inStr = case oldParseLabel inStr of
