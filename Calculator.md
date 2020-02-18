@@ -39,6 +39,30 @@ You a Haskell for Great Good](
 http://learnyouahaskell.com/making-our-own-types-and-typeclasses#algebraic-data-types
 ).
 
+### 1.1. Use type synonyms for types imported from other modules
+The `Calculator.hs` program we are writing will be subject to quite a
+few changes over the course of the following exercises. So to reduce
+the amount of typing we need to do, let's create type synonyms for all
+the important types that we use. This way, if we decide to change the
+any data type we are using, we will have fewer lines of code to change
+elsewhere.
+
+Please copy and paste the type synonyms into your `Calculator.hs`
+file:
+
+``` haskell
+type CalcNumber = Double
+type CalcLabel  = String
+type CalcOpCode = Char
+```
+
+Then rewrite the `CalcAST` data type to use these type synonyms,
+instead of the types `Double`, `Char`, or `String`.
+
+Refer to [chapter 8 of Learn You a Haskell for Great Good](
+http://learnyouahaskell.com/making-our-own-types-and-typeclasses#type-synonyms
+).
+
 ## 2. Define an evaluator
 Let's define a function called `calcEval`. The type of this function
 should be:
