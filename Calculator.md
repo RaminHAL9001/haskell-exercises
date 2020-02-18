@@ -923,6 +923,22 @@ applications to the `Infix` constructor.
 list to run the function.
 
 #### 3.12.3. Respecting the operator precedence (order of operations)
+We first create a function `getOpPrecedence` that return the
+precedence number for any given `CalcOpCode`. To make it fit in nicely
+with the rest of your program, make `getOpPrecedence` a function that
+returns a list type. Have it return an empty list if the character
+given is not one of `'+'`, `'-'`, `'*'`, or `'/'`, otherwise return a
+list with the single precedence value.
+
+``` haskell
+getOpPrecedence :: CalcOpCode -> [Int]
+```
+
+The `'+'` and `'-'` op-codes should have a precedence of 1, the `'*'`
+and `'/'` op-codes bind more stronlgy and should have a precedence of
+2.
+
+#### 3.12.4. Updating `parseInfix` to respect operator precedence
 The final change we need to make to our `parseInfix` function is for
 it to respect the order of operations, that is to say, the
 multiplication operator needs to bind "more strongly" than the addition
@@ -930,7 +946,7 @@ operator. To do this, we simply include one more argument to the
 `parseInfix` function -- an argument `prec` of type `Int`:
 
 ``` haskell
-oarseInfix :: Endo CalcAST -> Int -> CalcParser CalcAST
+parseInfix :: Endo CalcAST -> Int -> CalcParser CalcAST
 ```
 
 We then change the logic of `parseInfix` to check the precedence of an
