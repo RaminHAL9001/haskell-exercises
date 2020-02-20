@@ -1,5 +1,7 @@
 module Main where
 
+import Data.Char
+
 type CalcNumber = Double
 type CalcLabel  = String
 type CalcOpCode = Char
