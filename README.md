@@ -3,19 +3,21 @@
 In the following exercises, we will learn how to create parsers for a
 very simple arithmetic calculator language in Haskell.
 
-In these exercises, students will learn about the basics of "parser
+Read `./Calculator.md` to begin this tutorial.
+
+In this tutorial, students will learn about the basics of "parser
 combinators" by creating our own simple parser combinator
 library. This will give us a deep understanding of how industrial
 parser combinator libraries such as [Attoparsec](
 https://hackage.haskell.org/package/attoparsec ) or [Megaparsec](
 https://hackage.haskell.org/package/megaparsec ) work internally.
 
-We will begin by creating a naive parser, then iteratively upgrade our
-program. After each iteration our program will begin to take the form
-of a more proper and elegant Haskell parser. By "elegant" I mean we
-will use more advanced concepts (e.g. Monads and Applicative Functors)
-to make our program much shorter, and therefore easier to change and
-improve.
+We will begin by creating a naive parser, then in each exercise we
+will refine our program a little bit, making our program gradually
+take the form of a more proper and elegant Haskell parser. By
+"elegant" I mean we will use more advanced concepts (e.g. Monads and
+Applicative Functors) to make our program much shorter, and therefore
+easier to change and improve.
 
 My hope is that students following these exercises will be able to
 understand the advanced concepts works "under the hood," because we
@@ -37,44 +39,83 @@ https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
 language standard. The API reference documentation for these modules
 are here:
 
-* https://hackage.haskell.org/package/base-4.12.0.0/docs/Prelude.html
-* https://hackage.haskell.org/package/base-4.12.0.0/docs/Data-Char.html
+- Chapter 1, 2
+    - ["base" Prelude]( https://hackage.haskell.org/package/base/docs/Prelude.html )
 
-We will use the `ghc --make` command to build our program. Please
-create a new Haskell source file `Calculator.hs` and configure your
-favorite text editor to execute `ghc --make` as it's build
-command. After you fix all the errors, an executable program called
-`Calculator` will be built, which you can run on the command line.
+- Chapter 3
+    - ["base" Data.Char]( https://hackage.haskell.org/package/base/docs/Data-Char.html)
 
-We will be making use of the standard character predicates module
-`Data.Char`.
+- Chapter 4
+    - ["mtl" Control.Monad.Except]( https://hackage.haskell.org/package/mtl/docs/Control-Monad-Except.html )
 
-Open `Calculator.hs` in your editor declare it to be our Main program,
-and import the `Data.Char` library
+- Chapter 5
+	- ["mtl" Control.Monad.State]( https://hackage.haskell.org/package/mtl/docs/Control-Monad-State-Lazy.html )
 
-``` haskell
-module Main where
+- Chapter 6
+    - ["megaparsec" Text.Megaparsec]( https://hackage.haskell.org/package/megaparsec/docs/Text-Megaparsec.html )
 
-import Data.Char
-```
+We will use the `cabal build` command to build our program. Before you
+can run `cabal build` you must run the `cabal v2-configure` command in
+the command line (make sure you have run `cd` to changed to the
+directory containing this `README.md` file), which will check that you
+have the dependent code packages installed, and set up a build
+directory to contain the output of the compiler.
 
-## A note about this Git repository
+Open `./Calculator/Calculator.hs` in your favorite editor IDE, and set
+the build command to `cabal build Calculator`.
+
+# A note about this Git repository
 I will write the answers to exercises in a file called
-`Calculator.hs`, which will **NOT** be on the `master` branch. For
-example, to view the `Calculator.hs` program that answers the exercise
-problem 3.1., check out the branch with the name `ex-3.1` using the
-Git command line:
+`./Calculator/Calculator.hs`, which is empty on the `master` branch.
+
+The answers to all exercises, that is to say, the completed
+`Calculator.hs` file, can be checked out from the Git `all-answers`
+branch. The commit history of `all-answers` has exactly one commit
+showing the changes that were made to solve the problems given in the
+exercise. The comment of each commit matches the text of the exercise
+section header.
+
+### WARNING: this is a work in progress!
+Not all the exercises have answers yet.
+
+## Solutions to practice problems
+There is also a commit for each in the history of `all-answers`
+containing the solutions to each practice problem.
 
 ``` sh
-git checkout ex-3.1
+git checkout 'ex-3.1';
 ```
 
-**NOTE** that this is a work in progress, not all the exercises may
-have answers yet.
+## Please create a `homework` branch before writing any code
+It is strongly recommended you create a new Git branch (maybe call it
+the `homework` branch) before writing your code into `Calculator.hs`,
+and commit your changes to this branch:
 
-Check out the branch `all-answers` to see the final program. You can
-use the `git log` command to view the history of changes to the final
-`Calculator.hs` program, each commit in the history will be an answer
-to an exercise problem. I hope that you can see how the naive program
-is tranformed into an elegant program simply by reading each diff in
-the commit history.
+``` sh
+git checkout -b 'homework;
+```
+
+If you do not, Git will usually fail if you try to check-out the
+`all-answers` branch or any of the solution exercise branches.
+
+## Getting a list of solutions to practice problems
+Use the `git log` command to list all commits in the range of the
+`master` branch to the `all-answers` branch. It is recommended you use
+the `--reverse` and `--oneline` option:
+
+``` sh
+git log --reverse --oneline 'master'..'all-answers';
+```
+
+## Viewing the solution to a practice problem in the command line
+Once you have listed all solutions (as explained above), you can see
+what changes were made for that particular solution on the command
+line using the `git diff` command, and git's syntax for specifying a
+revision by the text of it's commit message (this is the curly-bracket
+notation). The following example commands will view the changes made
+in section 2.1, followed by the changes made in section 3.7.
+
+``` sh
+git diff 'all-answers^{/^2\.1\.}^-1';
+git diff 'all-answers^{/^3\.7\.}^-1';
+```
