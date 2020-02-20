@@ -1,4 +1,5 @@
-# Haskell Exercise Problems by Ramin Honary
+# Elegant Haskell
+## Understanding monadic parsers from the ground-up
 In the following exercises, we will learn how to create parsers for a
 very simple arithmetic calculator language in Haskell.
 
